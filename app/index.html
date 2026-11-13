@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FOODPILOT AI | نظام المطعم</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f6f3;--card:#fff;--ink:#17231c;--mute:#5d6b62;--line:#e1e6df;--brand:#0f7a4d;--soft:#e6f4ec;--bad:#c92a2a;--warn:#e8890c;--ok:#0f7a4d;--side:#10241a}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1411;--card:#18211c;--ink:#e8efe9;--mute:#9bab9f;--line:#2a372f;--brand:#3ccf8e;--soft:#1b2d24;--bad:#ff6b6b;--warn:#ffb04a;--ok:#3ccf8e;--side:#0a120e}}
+*{box-sizing:border-box}body{margin:0;font-family:Cairo,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+aside{background:var(--side);color:#dfeee5;padding:14px 10px;position:sticky;top:0;height:100vh;overflow:auto}
+aside h1{font-size:18px;margin:4px 8px 2px;color:#3ccf8e}aside small{display:block;margin:0 8px 12px;color:#8fa699}
+aside button{display:flex;width:100%;gap:8px;align-items:center;background:none;border:0;color:inherit;font:inherit;padding:9px 12px;border-radius:10px;cursor:pointer;text-align:start}
+aside button:hover{background:#1c3a2b}aside button.on{background:#0f7a4d;color:#fff}
+aside .bd{margin-inline-start:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;padding:0 7px}
+main{padding:20px;max-width:1150px;width:100%}
+h2{margin:0 0 4px;font-size:24px}.sub{color:var(--mute);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.grid .card{margin:0}
+.k{font-size:13px;color:var(--mute)}.v{font-size:24px;font-weight:800}.v.s{font-size:18px}
+.pos{color:var(--ok)}.neg{color:var(--bad)}.wr{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 10px;text-align:start;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--brand);background:var(--soft);white-space:nowrap}.tw{overflow-x:auto}
+input,select,textarea{font:inherit;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);max-width:100%}
+input[type=number]{width:100px}
+button.b{font:inherit;background:var(--brand);color:#fff;border:0;border-radius:10px;padding:8px 16px;cursor:pointer;font-weight:700}
+button.b.g{background:transparent;color:var(--brand);border:1.5px solid var(--brand)}button.b.r{background:var(--bad)}button.b.sm{padding:3px 10px;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}.row label{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:3px}
+.tag{display:inline-block;padding:1px 10px;border-radius:99px;font-size:12px;font-weight:700;border:1px solid currentColor}
+.al{border-inline-start:4px solid var(--warn);padding:8px 12px;background:var(--card);border-radius:10px;margin-bottom:8px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.al.c{border-inline-start-color:var(--bad)}.al.i{border-inline-start-color:var(--brand)}
+.score{width:130px;height:130px;border-radius:50%;display:grid;place-items:center;font-size:36px;font-weight:800;margin:auto}
+.chat{background:var(--soft);padding:10px 14px;border-radius:12px;margin:8px 0}.chat.u{background:var(--brand);color:#fff;margin-inline-start:30%}
+.note{font-size:12px;color:var(--mute)}
+@media(max-width:800px){.app{grid-template-columns:1fr}aside{position:static;height:auto;display:flex;overflow-x:auto;white-space:nowrap}aside h1,aside small{display:none}aside button{width:auto}}
+</style></head>
+<body><div class="app">
+<aside id="nav"></aside>
+<main id="main"></main>
+</div>
+<script>
+const KEY='foodpilot_app_v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=(x,d=0)=>(+x||0).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const M=x=>N(x)+' ج.م';
+const P=x=>N(x,1)+'%';
+const iso=d=>d.toISOString().slice(0,10);
+const today=()=>iso(new Date());
+const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const UNITS={g:[['كجم',1000],['جم',1]],ml:[['لتر',1000],['مل',1]],pc:[['قطعة',1],['كرتونة (12)',12]]};
+const UL={g:'جم',ml:'مل',pc:'قطعة'};
+
+// ---------- seed ----------
+function seed(){
+ const ing=[
+  ['chicken','صدور فراخ','g',0.18,85,50000,12000,'مورد A'],['pasta','مكرونة','g',0.03,100,60000,15000,'مورد B'],
+  ['cream','كريمة','ml',0.08,100,12000,5000,'مورد A'],['mozz','موزاريلا','g',0.30,100,3500,6000,'مورد B'],
+  ['butter','زبدة','g',0.25,100,4000,1500,'مورد C'],['spice','توابل','g',0.20,100,2500,500,'مورد C'],
+  ['box','عبوة','pc',5,100,300,100,'مورد C'],['patty','برجر لحم','g',0.25,80,40000,10000,'مورد A'],
+  ['bun','خبز برجر','pc',3,100,400,100,'مورد B'],['cheddar','شيدر','g',0.28,100,6000,2000,'مورد B'],
+  ['lettuce','خس','g',0.04,90,5000,1500,'مورد C'],['tomato','طماطم','g',0.03,92,9000,3000,'مورد C'],
+  ['dough','عجينة بيتزا','g',0.02,100,40000,10000,'مورد B'],['sauce','صوص طماطم','g',0.04,100,12000,4000,'مورد B'],
+  ['fries','بطاطس','g',0.03,100,50000,10000,'مورد C']
+ ].map(r=>({id:r[0],name:r[1],unit:r[2],cost:r[3],yield:r[4],stock:r[5],min:r[6],supplier:r[7],last:r[3]}));
+ const rec=[
+  ['r1','تشيكن ألفريدو','باستا',[['pasta',230],['chicken',120],['cream',100],['mozz',30],['butter',15],['spice',5],['box',1]],{dine:150,direct:160,app:195}],
+  ['r2','تشيكن بيستو','باستا',[['pasta',230],['chicken',120],['cream',60],['butter',15],['spice',5],['box',1]],{dine:120,direct:125,app:150}],
+  ['r3','بيتزا مارجريتا','بيتزا',[['dough',250],['sauce',80],['mozz',120],['box',1]],{dine:110,direct:120,app:150}],
+  ['r4','برجر لحم','برجر',[['patty',150],['bun',1],['cheddar',30],['lettuce',20],['tomato',30],['box',1]],{dine:120,direct:130,app:165}],
+  ['r5','بطاطس مقلية','جانبي',[['fries',200],['box',1]],{dine:40,direct:45,app:60}]
+ ].map(r=>({id:r[0],name:r[1],cat:r[2],items:r[3].map(i=>({ing:i[0],qty:i[1]})),prices:r[4]}));
+ let seedN=7;const rnd=()=>{seedN=(seedN*9301+49297)%233280;return seedN/233280};
+ const w={r1:1.0,r2:.3,r3:.7,r4:.9,r5:1.2};const ch={dine:.4,direct:.15,app:.45};
+ const sales=[];
+ for(let d=29;d>=0;d--){for(const c of Object.keys(ch)){const items=[];
+   for(const r of rec){const q=Math.round(w[r.id]*ch[c]*31*(0.6+rnd()*0.8));if(q>0)items.push({rid:r.id,qty:q,price:r.prices[c]})}
+   sales.push({id:uid(),date:daysAgo(d),ch:c,items,disc:c==='app'?5:0,seeded:true})}}
+ const exp=[['إيجار','fixed',40000,25],['مرتبات','fixed',70000,25],['كهرباء ومياه وغاز','fixed',9000,20],['تسويق وإعلانات','variable',10000,15],['صيانة','variable',2500,10],['مصاريف إدارية','fixed',4000,25]]
+  .map(e=>({id:uid(),cat:e[0],type:e[1],amount:e[2],date:daysAgo(e[3]),note:''}));
+ return {ing,rec,sales,exp,inv:[],counts:[],plog:[],
+  channels:{dine:{name:'داخل المطعم',comm:0,del:0},direct:{name:'طلب مباشر',comm:0,del:12},app:{name:'تطبيق توصيل',comm:30,del:0}},
+  target:30,settings:{period:30}};
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.ing)S=seed();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const ING=id=>S.ing.find(i=>i.id===id);
+const REC=id=>S.rec.find(r=>r.id===id);
+
+// ---------- engine ----------
+const unitCost=i=>i.cost/(i.yield/100);            // cost per usable base unit
+function recCost(r){let food=0,pack=0;for(const it of r.items){const g=ING(it.ing);if(!g)continue;const c=it.qty*unitCost(g);if(g.name==='عبوة'||g.cat==='pack')pack+=c;else food+=c}return {food,pack,total:food+pack}}
+function chanNet(price,c,disc=0){const ch=S.channels[c];const p=price*(1-disc/100);return p-p*ch.comm/100}
+function inPeriod(d){return d>=daysAgo(S.settings.period-1)&&d<=today()}
+function saleCalc(s){let gross=0,cogs=0,units=0;for(const it of s.items){const r=REC(it.rid);if(!r)continue;gross+=it.qty*it.price*(1-s.disc/100);cogs+=it.qty*(it.cost??recCost(r).total);units+=it.qty}
+ const ch=S.channels[s.ch];const comm=gross*ch.comm/100;const del=ch.del*(s.orders||Math.max(1,Math.round(units/2.2)));
+ return {gross,cogs,comm,del,units}}
+function agg(){const sales=S.sales.filter(s=>inPeriod(s.date));let R={rev:0,cogs:0,comm:0,del:0,units:0,byCh:{},byRec:{},daily:{}};
+ for(const k in S.channels)R.byCh[k]={rev:0,cogs:0,comm:0,del:0};
+ for(const s of sales){const c=saleCalc(s);R.rev+=c.gross;R.cogs+=c.cogs;R.comm+=c.comm;R.del+=c.del;R.units+=c.units;
+  const b=R.byCh[s.ch];b.rev+=c.gross;b.cogs+=c.cogs;b.comm+=c.comm;b.del+=c.del;
+  R.daily[s.date]=(R.daily[s.date]||0)+c.gross;
+  for(const it of s.items){const r=REC(it.rid);if(!r)continue;const x=R.byRec[it.rid]||(R.byRec[it.rid]={qty:0,rev:0,cm:0});const g=it.qty*it.price*(1-s.disc/100);const cost=it.qty*(it.cost??recCost(r).total);const cm=g-g*S.channels[s.ch].comm/100-cost-S.channels[s.ch].del*it.qty/2.2;x.qty+=it.qty;x.rev+=g;x.cm+=cm}}
+ const ex=S.exp.filter(e=>inPeriod(e.date));R.fixed=ex.filter(e=>e.type==='fixed').reduce((a,e)=>a+e.amount,0);R.varx=ex.filter(e=>e.type!=='fixed').reduce((a,e)=>a+e.amount,0);
+ R.gp=R.rev-R.cogs;R.cm=R.rev-R.cogs-R.comm-R.del-R.varx;R.net=R.cm-R.fixed;R.cmr=R.rev?R.cm/R.rev:0;R.be=R.cmr>0?R.fixed/R.cmr:NaN;
+ R.fcp=R.rev?R.cogs/R.rev*100:0;R.commp=R.rev?R.comm/R.rev*100:0;R.sal=ex.filter(e=>e.cat==='مرتبات').reduce((a,e)=>a+e.amount,0);R.labp=R.rev?R.sal/R.rev*100:0;
+ return R}
+function alerts(){const A=[];const R=agg();
+ for(const i of S.ing)if(i.stock<=i.min)A.push(['c',`مخزون منخفض: ${i.name} (${N(i.stock)} ${UL[i.unit]} ≤ الحد الأدنى ${N(i.min)})`]);
+ for(const p of S.plog.slice(-20))if(p.pct>=8&&p.date>=daysAgo(14))A.push(['w',`ارتفع سعر ${esc(p.name)} ${P(p.pct)} (${p.date})`]);
+ for(const r of S.rec){const c=recCost(r).total;for(const k in S.channels){const n=chanNet(r.prices[k],k,k==='app'?5:0);const m=n-c-S.channels[k].del;if(m<=0)A.push(['c',`${r.name} يخسر على قناة ${S.channels[k].name} (صافي ${N(m,1)} للوحدة)`]);else if(m/r.prices[k]<.15)A.push(['w',`هامش ${r.name} على ${S.channels[k].name} منخفض (${P(m/r.prices[k]*100)})`])}}
+ if(R.rev&&R.fcp>35)A.push(['w',`نسبة تكلفة الطعام ${P(R.fcp)} أعلى من المستهدف`]);
+ if(R.rev&&R.net<0)A.push(['c','صافي الربح سالب في الفترة']);
+ if(R.rev&&R.rev<R.be)A.push(['c','المبيعات أقل من نقطة التعادل']);
+ for(const i of S.inv.filter(i=>i.status==='pending'))A.push(['i',`فاتورة ${esc(i.supplier)} بانتظار الاعتماد`]);
+ for(const c of S.counts.slice(-10))if(c.date>=daysAgo(7)&&Math.abs(c.pct)>=5)A.push(['w',`فرق جرد ${esc(c.name)}: ${c.diff>0?'+':''}${N(c.diff)} ${UL[c.unit]} (${P(c.pct)})`]);
+ return A}
+function health(){const R=agg();let s=0;const parts=[];
+ const f=R.rev?Math.max(0,Math.min(25,25-(R.fcp-30)*2.5)):12;s+=f;parts.push(['تكلفة الطعام',f,25]);
+ const m=R.rev?Math.max(0,Math.min(30,R.net/R.rev*100*2)):0;s+=m;parts.push(['هامش الربح',m,30]);
+ const low=S.ing.filter(i=>i.stock<=i.min).length;const st=Math.max(0,20-low*5);s+=st;parts.push(['المخزون',st,20]);
+ const bad=S.rec.filter(r=>Object.keys(S.channels).some(k=>chanNet(r.prices[k],k)-recCost(r).total-S.channels[k].del<=0)).length;const pr=Math.max(0,15-bad*5);s+=pr;parts.push(['التسعير',pr,15]);
+ const sf=R.rev&&R.be?Math.max(0,Math.min(10,(R.rev-R.be)/R.rev*40)):0;s+=sf;parts.push(['هامش الأمان',sf,10]);
+ return {score:Math.round(s),parts}}
+
+// ---------- ui ----------
+const TABS=[['dash','📊 اللوحة'],['inv','🧾 الفواتير'],['stock','📦 الخامات والمخزون'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['pos','🛒 المبيعات'],['exp','💸 المصروفات'],['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['ai','🤖 المستشار'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']];
+let tab='dash';let draft=null,cart=[];
+function nav(){const na=alerts().filter(a=>a[0]!=='i').length;$('#nav').innerHTML='<h1>FOODPILOT AI</h1><small>مطعم تجريبي — نسخة عمل</small>'+TABS.map(t=>`<button class="${t[0]===tab?'on':''}" data-tab="${t[0]}">${t[1]}${t[0]==='dash'&&na?`<span class="bd">${na}</span>`:''}</button>`).join('')}
+function go(t){tab=t;render()}
+function render(){nav();const f=V[tab];$('#main').innerHTML=f();if(A[tab+'_init'])A[tab+'_init']();window.scrollTo(0,0)}
+const kpi=(k,v,c='')=>`<div class="card"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
+const per=()=>`<div class="note">الفترة: آخر ${S.settings.period} يوم</div>`;
+const V={};
+V.dash=()=>{const R=agg();const H=health();const al=alerts();
+ const days=[];for(let d=S.settings.period-1;d>=0;d--)days.push(daysAgo(d));const mx=Math.max(1,...days.map(d=>R.daily[d]||0));
+ const bars=days.map((d,i)=>{const h=(R.daily[d]||0)/mx*90;return `<rect x="${i*10}" y="${100-h}" width="7" height="${h}" rx="2" fill="var(--brand)"><title>${d}: ${M(R.daily[d]||0)}</title></rect>`}).join('');
+ const col=H.score>=75?'var(--ok)':H.score>=50?'var(--warn)':'var(--bad)';
+ return `<h2>لوحة المالك</h2><p class="sub">الوضع المالي الحقيقي للمطعم، محسوب من الفواتير والوصفات والمبيعات والمصروفات المسجلة. ${per()}</p>
+ <div class="grid">${kpi('صافي المبيعات',M(R.rev))}${kpi('تكلفة الخامات',M(R.cogs)+' <small>'+P(R.fcp)+'</small>','s')}${kpi('عمولات + توصيل',M(R.comm+R.del)+' <small>'+P(R.commp)+'</small>','s')}${kpi('المصروفات',M(R.fixed+R.varx),'s')}
+ ${kpi('صافي الربح',M(R.net),R.net>=0?'pos':'neg')}${kpi('نقطة التعادل',isFinite(R.be)?M(R.be):'-','s')}${kpi('Labor Cost',P(R.labp),'s')}${kpi('قيمة المخزون',M(S.ing.reduce((a,i)=>a+i.stock*i.cost,0)),'s')}</div>
+ <div class="grid" style="grid-template-columns:1fr 2fr"><div class="card"><div class="k" style="text-align:center">Restaurant Health Score</div><div class="score" style="border:10px solid ${col};color:${col}">${H.score}</div>
+ <div class="note" style="margin-top:8px">${H.parts.map(p=>`${p[0]}: ${N(p[1])}/${p[2]}`).join(' · ')}</div></div>
+ <div class="card"><div class="k">المبيعات اليومية</div><svg viewBox="0 0 ${days.length*10} 100" style="width:100%;height:150px" preserveAspectRatio="none">${bars}</svg></div></div>
+ <div class="card"><h3 style="margin-top:0">التنبيهات (${al.length})</h3>${al.length?al.map(a=>`<div class="al ${a[0]}">${a[1]}</div>`).join(''):'<div class="note">لا توجد تنبيهات</div>'}</div>
+ <div class="card"><h3 style="margin-top:0">ربحية القنوات</h3><div class="tw"><table><tr><th>القناة</th><th>مبيعات</th><th>تكلفة خامات</th><th>عمولة</th><th>توصيل</th><th>مساهمة</th><th>%</th></tr>
+ ${Object.keys(S.channels).map(k=>{const b=R.byCh[k],cm=b.rev-b.cogs-b.comm-b.del;return `<tr><td>${S.channels[k].name}</td><td>${M(b.rev)}</td><td>${M(b.cogs)}</td><td>${M(b.comm)}</td><td>${M(b.del)}</td><td class="${cm<0?'neg':''}">${M(cm)}</td><td>${b.rev?P(cm/b.rev*100):'-'}</td></tr>`}).join('')}</table></div></div>`};
+
+// ---- invoices
+V.inv=()=>{if(!draft)draft={supplier:'مورد A',date:today(),lines:[{ing:S.ing[0].id,qty:1,unit:1000,total:0}],img:null};
+ const sup=[...new Set(S.ing.map(i=>i.supplier))];
+ const lines=draft.lines.map((l,i)=>{const g=ING(l.ing);const cf=l.conf?`<span class="tag ${l.conf<.85?'neg':'pos'}">ثقة ${Math.round(l.conf*100)}%</span>`:'';
+  return `<tr><td><select data-d="ing" data-i="${i}">${S.ing.map(x=>`<option value="${x.id}"${x.id===l.ing?' selected':''}>${esc(x.name)}</option>`).join('')}</select></td>
+  <td><input type="number" step="any" data-d="qty" data-i="${i}" value="${l.qty}"></td>
+  <td><select data-d="unit" data-i="${i}">${UNITS[g.unit].map(u=>`<option value="${u[1]}"${+l.unit===u[1]?' selected':''}>${u[0]}</option>`).join('')}</select></td>
+  <td><input type="number" step="any" data-d="total" data-i="${i}" value="${l.total}"></td><td>${cf}</td><td><button class="b r sm" data-act="delLine" data-i="${i}">×</button></td></tr>`}).join('');
+ const pend=S.inv.slice().reverse();
+ return `<h2>الفواتير الذكية</h2><p class="sub">صوّر الفاتورة أو أدخلها، راجع، ثم اعتمد: يتحدث المخزون وتكلفة الخامات وتتحدث تكلفة كل وصفة تلقائيًا.</p>
+ <div class="card"><div class="row"><label>المورد<select data-d="supplier">${sup.map(s=>`<option${s===draft.supplier?' selected':''}>${esc(s)}</option>`).join('')}</select></label>
+ <label>التاريخ<input type="date" data-d="date" value="${draft.date}"></label>
+ <label>صورة الفاتورة<input type="file" accept="image/*" id="invImg"></label>
+ <button class="b g" data-act="ocr">⚡ قراءة بالذكاء الاصطناعي (محاكاة)</button></div>
+ ${draft.img?`<img src="${draft.img}" style="max-height:140px;border-radius:8px;margin-bottom:8px">`:''}
+ <div class="tw"><table><tr><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>الإجمالي (ج.م)</th><th></th><th></th></tr>${lines}</table></div>
+ <div class="row" style="margin-top:10px"><button class="b g" data-act="addLine">+ سطر</button><button class="b" data-act="saveInv">حفظ للمراجعة</button></div>
+ <div class="note">القراءة الذكية هنا محاكاة لإظهار شاشة المراجعة؛ في النسخة الإنتاجية يربط OCR حقيقي. لا تُعتمد أي فاتورة قبل المراجعة البشرية.</div></div>
+ <div class="card"><h3 style="margin-top:0">سجل الفواتير</h3><div class="tw"><table><tr><th>التاريخ</th><th>المورد</th><th>البنود</th><th>الإجمالي</th><th>الحالة</th><th></th></tr>
+ ${pend.map(v=>`<tr><td>${v.date}</td><td>${esc(v.supplier)}</td><td>${v.lines.map(l=>esc(ING(l.ing)?.name)+' '+N(l.qty*l.unit)+UL[ING(l.ing)?.unit]).join('، ')}</td><td>${M(v.lines.reduce((a,l)=>a+l.total,0))}</td>
+ <td>${v.status==='pending'?'<span class="tag wr">قيد المراجعة</span>':v.status==='approved'?'<span class="tag pos">معتمدة</span>':'<span class="tag neg">مرفوضة</span>'}${v.dup?' <span class="tag neg">مكررة؟</span>':''}</td>
+ <td>${v.status==='pending'?`<button class="b sm" data-act="appr" data-id="${v.id}">اعتماد</button> <button class="b r sm" data-act="rej" data-id="${v.id}">رفض</button>`:''}</td></tr>`).join('')||'<tr><td colspan=6 class="note">لا توجد فواتير</td></tr>'}</table></div></div>`};
+
+// ---- stock
+V.stock=()=>`<h2>الخامات والمخزون</h2><p class="sub">الرصيد النظري يتحدث من الفواتير المعتمدة والمبيعات. أدخل الجرد الفعلي لمقارنة الفروقات.</p>
+ <div class="card"><div class="tw"><table><tr><th>الخامة</th><th>الوحدة</th><th>الرصيد النظري</th><th>الحد الأدنى</th><th>تكلفة الوحدة الخام</th><th>Yield %</th><th>تكلفة الوحدة الصالحة</th><th>المورد</th><th>جرد فعلي</th></tr>
+ ${S.ing.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td>${UL[i.unit]}</td><td class="${i.stock<=i.min?'neg':''}">${N(i.stock)}</td><td>${N(i.min)}</td><td>${N(i.cost,3)}</td><td><input type="number" style="width:70px" data-ey="${i.id}" value="${i.yield}"></td><td>${N(unitCost(i),3)}</td><td>${esc(i.supplier)}</td><td><input type="number" data-cnt="${i.id}" placeholder="${N(i.stock)}"></td></tr>`).join('')}</table></div>
+ <div class="row" style="margin-top:10px"><button class="b" data-act="count">اعتماد الجرد</button></div></div>
+ <div class="card"><h3 style="margin-top:0">إضافة خامة</h3><div class="row"><label>الاسم<input id="ni_n"></label><label>الوحدة<select id="ni_u"><option value="g">جم</option><option value="ml">مل</option><option value="pc">قطعة</option></select></label><label>تكلفة الوحدة<input type="number" step="any" id="ni_c"></label><label>الحد الأدنى<input type="number" id="ni_m"></label><label>المورد<input id="ni_s" value="مورد A"></label><button class="b" data-act="addIng">إضافة</button></div></div>
+ <div class="card"><h3 style="margin-top:0">سجل الجرد والفروقات</h3><div class="tw"><table><tr><th>التاريخ</th><th>الخامة</th><th>نظري</th><th>فعلي</th><th>الفرق</th><th>قيمة الفرق</th></tr>
+ ${S.counts.slice().reverse().slice(0,30).map(c=>`<tr><td>${c.date}</td><td>${esc(c.name)}</td><td>${N(c.theo)}</td><td>${N(c.act)}</td><td class="${c.diff<0?'neg':''}">${N(c.diff)} (${P(c.pct)})</td><td>${M(c.val)}</td></tr>`).join('')||'<tr><td colspan=6 class="note">لا يوجد جرد</td></tr>'}</table></div>
+ <div class="note">الفرق السالب = عجز يستوجب التحقيق: هالك؟ صرف غير مسجل؟ خطأ وصفة؟ خطأ جرد؟</div></div>`;
+
+// ---- recipes
+V.rec=()=>`<h2>الوصفات وتكلفة الجرام</h2><p class="sub">التكلفة تُحسب من آخر تكلفة معتمدة للخامة مع Yield، وتُعرض الخامات والتغليف منفصلين.</p>
+ ${S.rec.map(r=>{const c=recCost(r);return `<div class="card"><div class="row"><b style="font-size:18px">${esc(r.name)}</b><span class="tag">${esc(r.cat)}</span><span style="margin-inline-start:auto">تكلفة الطعام: <b>${N(c.food,2)}</b> · التغليف: <b>${N(c.pack,2)}</b> · الإجمالي: <b class="pos">${N(c.total,2)} ج.م</b></span></div>
+ <div class="tw"><table><tr><th>المكون</th><th>الكمية</th><th>تكلفة الوحدة الصالحة</th><th>التكلفة</th><th></th></tr>
+ ${r.items.map((it,k)=>{const g=ING(it.ing);return `<tr><td>${esc(g.name)}</td><td><input type="number" step="any" data-rq="${r.id}:${k}" value="${it.qty}"> ${UL[g.unit]}</td><td>${N(unitCost(g),3)}</td><td>${N(it.qty*unitCost(g),2)}</td><td><button class="b r sm" data-act="delItem" data-r="${r.id}" data-k="${k}">×</button></td></tr>`}).join('')}</table></div>
+ <div class="row" style="margin-top:8px"><select data-addsel="${r.id}">${S.ing.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select><input type="number" placeholder="الكمية" data-addq="${r.id}"><button class="b g sm" data-act="addItem" data-r="${r.id}">+ مكون</button><button class="b r sm" data-act="delRec" data-r="${r.id}" style="margin-inline-start:auto">حذف الوصفة</button></div></div>`}).join('')}
+ <div class="card"><h3 style="margin-top:0">وصفة جديدة</h3><div class="row"><label>الاسم<input id="nr_n"></label><label>الفئة<input id="nr_c" value="باستا"></label><button class="b" data-act="addRec">إنشاء</button></div></div>`;
+
+// ---- pricing
+V.price=()=>{const ks=Object.keys(S.channels);return `<h2>التسعير الذكي</h2><p class="sub">السعر المقترح يغطي تكلفة الخامات والتغليف والعمولة والتوصيل ويحقق الهامش المستهدف (من سعر البيع).</p>
+ <div class="card row"><label>الهامش المستهدف %<input type="number" id="tg" value="${S.target}"></label><button class="b g" data-act="setTarget">تحديث</button></div>
+ ${S.rec.map(r=>{const c=recCost(r).total;return `<div class="card"><b>${esc(r.name)}</b> <span class="note">التكلفة المباشرة ${N(c,2)}</span><div class="tw"><table><tr><th>القناة</th><th>السعر الحالي</th><th>عمولة</th><th>صافي بعد العمولة</th><th>ربح الوحدة</th><th>الهامش</th><th>السعر المقترح</th></tr>
+ ${ks.map(k=>{const ch=S.channels[k],p=r.prices[k],disc=k==='app'?5:0,net=chanNet(p,k,disc),pr=net-c-ch.del,m=p?pr/p*100:0;
+  const kf=(1-disc/100)*(1-ch.comm/100),sug=kf-S.target/100>0?(c+ch.del)/(kf-S.target/100):NaN;
+  return `<tr><td>${ch.name}</td><td><input type="number" data-pr="${r.id}:${k}" value="${p}"></td><td>${ch.comm}%</td><td>${N(net,1)}</td><td class="${pr<0?'neg':''}">${N(pr,1)}</td><td class="${m<S.target?(m<=0?'neg':'wr'):'pos'}">${P(m)}</td><td><b>${isFinite(sug)?N(Math.ceil(sug/5)*5):'-'}</b> <button class="b g sm" data-act="applySug" data-r="${r.id}" data-k="${k}" data-v="${isFinite(sug)?Math.ceil(sug/5)*5:''}">اعتماد</button></td></tr>`}).join('')}</table></div></div>`}).join('')}
+ <div class="note">الخصم على قناة التطبيقات 5% مفترض في الحساب. المنتج لا يجب أن يحقق مبيعات عالية وهو يخسر.</div>`};
+
+// ---- POS
+V.pos=()=>{const ks=Object.keys(S.channels);const ch=draftCh||'dine';
+ const tot=cart.reduce((a,c)=>a+c.qty*REC(c.rid).prices[ch],0);
+ const recent=S.sales.filter(s=>!s.seeded).slice(-10).reverse();
+ return `<h2>المبيعات / الكاشير</h2><p class="sub">كل عملية بيع تخصم الاستهلاك من المخزون بالوصفة وتُسجّل بتكلفتها وقت البيع.</p>
+ <div class="card"><div class="row"><label>القناة<select id="pch">${ks.map(k=>`<option value="${k}"${k===ch?' selected':''}>${S.channels[k].name}</option>`).join('')}</select></label><label>خصم %<input type="number" id="pdisc" value="0"></label></div>
+ <div class="grid">${S.rec.map(r=>`<button class="card" style="cursor:pointer;text-align:start;margin:0" data-act="cartAdd" data-r="${r.id}"><b>${esc(r.name)}</b><div class="note">${N(r.prices[ch])} ج.م</div></button>`).join('')}</div>
+ <table>${cart.map((c,i)=>`<tr><td>${esc(REC(c.rid).name)}</td><td>× ${c.qty}</td><td>${N(c.qty*REC(c.rid).prices[ch])}</td><td><button class="b r sm" data-act="cartDel" data-i="${i}">×</button></td></tr>`).join('')||'<tr><td class="note">السلة فارغة</td></tr>'}</table>
+ <div class="row" style="margin-top:10px"><b>الإجمالي: ${M(tot)}</b><button class="b" data-act="sell">تسجيل البيع</button></div></div>
+ <div class="card"><h3 style="margin-top:0">آخر المبيعات المسجلة</h3><table>${recent.map(s=>`<tr><td>${s.date}</td><td>${S.channels[s.ch].name}</td><td>${s.items.map(i=>esc(REC(i.rid)?.name)+'×'+i.qty).join('، ')}</td><td>${M(saleCalc(s).gross)}</td></tr>`).join('')||'<tr><td class="note">لم تُسجل مبيعات يدوية بعد</td></tr>'}</table></div>`};
+let draftCh='dine';
+
+// ---- expenses
+const ECATS=['إيجار','مرتبات','كهرباء ومياه وغاز','تسويق وإعلانات','صيانة','نظافة','إنترنت واشتراكات','مصاريف إدارية','نقل وتوصيل','أخرى'];
+V.exp=()=>{const ex=S.exp.slice().sort((a,b)=>b.date.localeCompare(a.date));
+ const by={};S.exp.filter(e=>inPeriod(e.date)).forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amount);
+ return `<h2>المصروفات</h2><p class="sub">ثابتة ومتغيرة وتشغيلية، تدخل مباشرة في قائمة الأرباح والخسائر ونقطة التعادل.</p>
+ <div class="card"><div class="row"><label>التاريخ<input type="date" id="ed" value="${today()}"></label><label>البند<select id="ec">${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></label><label>النوع<select id="et"><option value="fixed">ثابت</option><option value="variable">متغير</option></select></label><label>المبلغ<input type="number" id="ea"></label><label>ملاحظة<input id="en"></label><button class="b" data-act="addExp">إضافة</button></div></div>
+ <div class="card"><h3 style="margin-top:0">توزيع المصروفات (${S.settings.period} يوم)</h3>${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="row" style="margin:3px 0"><span style="width:160px">${k}</span><div style="flex:1;background:var(--soft);border-radius:6px"><div style="width:${v/Math.max(...Object.values(by))*100}%;background:var(--brand);height:14px;border-radius:6px"></div></div><b>${M(v)}</b></div>`).join('')}</div>
+ <div class="card"><div class="tw"><table><tr><th>التاريخ</th><th>البند</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th><th></th></tr>${ex.map(e=>`<tr><td>${e.date}</td><td>${esc(e.cat)}</td><td>${e.type==='fixed'?'ثابت':'متغير'}</td><td>${M(e.amount)}</td><td>${esc(e.note)}</td><td><button class="b r sm" data-act="delExp" data-id="${e.id}">×</button></td></tr>`).join('')}</table></div></div>`};
+
+// ---- P&L
+V.pl=()=>{const R=agg();const r=(a,b,c='')=>`<tr class="${c}"><td>${a}</td><td style="text-align:end">${M(b)}</td><td style="text-align:end">${R.rev?P(b/R.rev*100):''}</td></tr>`;
+ const bp=R.rev?M(R.rev):'-';
+ return `<h2>الأرباح والخسائر ونقطة التعادل</h2><p class="sub">${per()}</p>
+ <div class="grid" style="grid-template-columns:2fr 1fr"><div class="card"><table>${r('صافي المبيعات',R.rev,'pos')}${r('− تكلفة الخامات والتغليف',-R.cogs)}${r('= مجمل الربح',R.gp,'pos')}${r('− عمولات المنصات',-R.comm)}${r('− تكلفة التوصيل',-R.del)}${r('− مصروفات متغيرة',-R.varx)}${r('= هامش المساهمة',R.cm,'pos')}${r('− مصروفات ثابتة (إيجار، مرتبات، مرافق…)',-R.fixed)}${r('= صافي الربح',R.net,R.net>=0?'pos':'neg')}</table></div>
+ <div class="card"><h3 style="margin-top:0">نقطة التعادل</h3><div class="k">المبيعات المطلوبة للتعادل</div><div class="v">${isFinite(R.be)?M(R.be):'-'}</div>
+ <div class="k" style="margin-top:8px">لتحقيق ربح 10%</div><b>${R.cmr>R.cmr*0+.1?M(R.fixed/(R.cmr-.1)):'غير ممكن'}</b>
+ <div class="k" style="margin-top:8px">لتحقيق ربح 20%</div><b>${R.cmr>.2?M(R.fixed/(R.cmr-.2)):'غير ممكن'}</b>
+ <div class="k" style="margin-top:8px">المبيعات اليومية المطلوبة</div><b>${isFinite(R.be)?M(R.be/S.settings.period):'-'}</b>
+ <div class="k" style="margin-top:8px">هامش الأمان</div><b class="${R.rev<R.be?'neg':'pos'}">${R.rev&&isFinite(R.be)?P((R.rev-R.be)/R.rev*100):'-'}</b></div></div>
+ <div class="card"><h3 style="margin-top:0">المؤشرات</h3><div class="grid"><div><div class="k">Food Cost</div><b>${P(R.fcp)}</b></div><div><div class="k">Labor Cost</div><b>${P(R.labp)}</b></div><div><div class="k">Prime Cost</div><b>${P(R.fcp+R.labp)}</b></div><div><div class="k">العمولات من المبيعات</div><b>${P(R.commp)}</b></div></div></div>`};
+
+// ---- menu engineering
+V.me=()=>{const R=agg();const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{qty:0,rev:0,cm:0})}));const tq=rows.reduce((a,x)=>a+x.qty,0),tc=rows.reduce((a,x)=>a+x.cm,0);const avg=tc/(tq||1),thr=.7/rows.length;
+ rows.forEach(x=>{x.u=x.qty?x.cm/x.qty:0;const hs=x.qty/(tq||1)>=thr,hp=x.u>=avg;x.cls=hs&&hp?'Stars':hs?'Plowhorses':hp?'Puzzles':'Dogs';if(x.u<=0)x.cls='Dogs'});
+ const adv={Stars:'حافظ على الجودة وروّج لها',Plowhorses:'ارفع السعر قليلًا أو خفّض التكلفة/الجرامات',Puzzles:'حسّن ظهورها بالمنيو وسوّق لها',Dogs:'راجع الوصفة والسعر أو أوقف الصنف'};
+ return `<h2>تحليل المنيو (Menu Engineering)</h2><p class="sub">التصنيف من المبيعات الفعلية والمساهمة بعد العمولة والتكلفة. ${per()}</p>
+ <div class="card tw"><table><tr><th>الصنف</th><th>الكمية</th><th>المبيعات</th><th>المساهمة الكلية</th><th>مساهمة الوحدة</th><th>التصنيف</th><th>التوصية</th></tr>
+ ${rows.sort((a,b)=>b.cm-a.cm).map(x=>`<tr><td><b>${esc(x.r.name)}</b></td><td>${N(x.qty)}</td><td>${M(x.rev)}</td><td class="${x.cm<0?'neg':''}">${M(x.cm)}</td><td>${N(x.u,1)}</td><td><span class="tag ${x.cls==='Stars'?'pos':x.cls==='Dogs'?'neg':'wr'}">${x.cls}</span></td><td>${adv[x.cls]}</td></tr>`).join('')}</table></div>`};
+
+// ---- AI advisor (rule-based on engine)
+let chat=[];
+function answer(q){const R=agg();const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{qty:0,rev:0,cm:0})})).sort((a,b)=>b.cm-a.cm);
+ const ql=q.toLowerCase();
+ if(/كسب|ربح|فلوس|مش شايف/.test(ql)&&!/منتج|صنف|اكتر|أكثر|سعر/.test(ql)){
+  return `خلال آخر ${S.settings.period} يوم: المبيعات ${M(R.rev)}، تكلفة الخامات ${P(R.fcp)}، العمولات والتوصيل ${P(R.commp+(R.rev?R.del/R.rev*100:0))}، المصروفات الثابتة ${M(R.fixed)}، والمتغيرة ${M(R.varx)}. <b>صافي الربح ${M(R.net)} (${R.rev?P(R.net/R.rev*100):'-'})</b>.`+
+  ` أكبر بند يستهلك المبيعات: ${[['الخامات',R.cogs],['العمولات',R.comm],['المصروفات الثابتة',R.fixed]].sort((a,b)=>b[1]-a[1])[0][0]}. <span class="note">المصدر: المحرك المالي، آخر ${S.settings.period} يوم.</span>`}
+ if(/خاسر|يخسر|خسارة|بخسر/.test(ql)){const bad=[];for(const r of S.rec)for(const k in S.channels){const m=chanNet(r.prices[k],k,k==='app'?5:0)-recCost(r).total-S.channels[k].del;if(m<=0)bad.push(`${r.name} على ${S.channels[k].name} (${N(m,1)})`)}
+  const lo=rows.filter(x=>x.cm<0).map(x=>x.r.name);return bad.length||lo.length?`المنتجات/القنوات الخاسرة: ${bad.join('، ')||'—'}. ${lo.length?'وبالمبيعات الفعلية يخسر: '+lo.join('، '):''} راجع التسعير أو الوصفة.`:'لا يوجد منتج يخسر حاليًا على أي قناة حسب الأسعار والتكاليف الحالية.'}
+ if(/اكتر|أكثر|top|أعلى/.test(ql))return 'أعلى الأصناف مساهمة في الربح: '+rows.slice(0,5).map((x,i)=>`${i+1}) ${x.r.name} (${M(x.cm)})`).join('، ');
+ if(/عمولة|تطبيق|طلبات/.test(ql)){const a=R.byCh.app,d=R.byCh.direct;const am=a.rev?(a.rev-a.cogs-a.comm-a.del)/a.rev*100:0,dm=d.rev?(d.rev-d.cogs-d.comm-d.del)/d.rev*100:0;
+  return `مبيعات التطبيق ${M(a.rev)} عمولتها ${M(a.comm)} (${S.channels.app.comm}%). مساهمة التطبيق ${P(am)} من مبيعاته مقابل ${P(dm)} للطلب المباشر. ${dm>am?'نقل جزء من الطلبات للقناة المباشرة يرفع الربح.':'التطبيق يحقق مساهمة مناسبة حاليًا.'} جرّب زيادة العمولة في المحاكي لرؤية الأثر.`}
+ if(/مورد/.test(ql)){const bs={};S.ing.forEach(i=>bs[i.supplier]=(bs[i.supplier]||0)+i.stock*i.cost);return 'قيمة المخزون حسب المورد: '+Object.entries(bs).map(([k,v])=>`${k} ${M(v)}`).join('، ')+'. سجّل فواتير أكثر من مورد لنفس الخامة ليقارن النظام الأسعار.'}
+ if(/تعادل/.test(ql))return `نقطة التعادل ${isFinite(R.be)?M(R.be):'-'} مقابل مبيعات ${M(R.rev)}. ${R.rev>=R.be?'أنت فوق التعادل بهامش أمان '+P((R.rev-R.be)/R.rev*100):'أنت تحت نقطة التعادل.'}`;
+ if(/مخزون|نقص|خلص/.test(ql)){const l=S.ing.filter(i=>i.stock<=i.min);return l.length?'خامات تحت الحد الأدنى: '+l.map(i=>i.name).join('، '):'لا توجد خامات تحت الحد الأدنى.'}
+ if(/تكلفة|خامات/.test(ql)){const p=S.plog.slice(-5).map(x=>`${x.name} ${P(x.pct)}`).join('، ');return `نسبة تكلفة الخامات ${P(R.fcp)}. ${p?'آخر تغيرات الأسعار: '+p:'لا توجد تغيرات أسعار مسجلة بعد؛ اعتمد فاتورة بسعر مختلف لترى الأثر.'}`}
+ return 'أستطيع الإجابة عن: الأرباح، المنتجات الخاسرة، أعلى الأصناف، عمولات التطبيقات، نقطة التعادل، المخزون، تكلفة الخامات. جرّب أحد الأزرار.'}
+V.ai=()=>{const qs=['أنا كسبت كام؟','إيه المنتجات اللي بخسر فيها؟','إيه أكتر الأصناف ربحًا؟','هل عمولة التطبيقات بتضرني؟','إيه نقطة التعادل؟','إيه الخامات اللي قربت تخلص؟','تكلفة الخامات عاملة إزاي؟'];
+ return `<h2>مستشار المطعم (AI Advisor)</h2><p class="sub">يجيب من أرقام المحرك المالي فقط، مع ذكر الفترة والمصدر ولا يختلق أرقامًا.</p>
+ <div class="card"><div class="row">${qs.map(q=>`<button class="b g sm" data-act="ask" data-q="${q}">${q}</button>`).join('')}</div>
+ <div id="chat">${chat.map(c=>`<div class="chat ${c.u?'u':''}">${c.t}</div>`).join('')}</div>
+ <div class="row"><input id="aq" placeholder="اسأل عن مطعمك…" style="flex:1"><button class="b" data-act="askTxt">إرسال</button></div>
+ <div class="note">النسخة الحالية تفسر بقواعد على بياناتك؛ ربط نموذج لغوي يتم في النسخة الإنتاجية فوق نفس المحرك.</div></div>`};
+
+// ---- simulator
+V.sim=()=>{const R=agg();return `<h2>محاكي القرارات (What-If)</h2><p class="sub">غيّر أي رقم وشاهد أثره على الربح ونقطة التعادل.</p>
+ <div class="card"><div class="grid"><label class="k">رفع الأسعار %<input type="number" id="s1" value="0"></label><label class="k">تغير المبيعات %<input type="number" id="s2" value="20"></label><label class="k">عمولة التطبيقات (نقطة)<input type="number" id="s3" value="0"></label><label class="k">تغير سعر الخامات %<input type="number" id="s4" value="0"></label><label class="k">تغير المصروفات الثابتة %<input type="number" id="s5" value="0"></label><label class="k">تحويل % من التطبيق للمباشر<input type="number" id="s6" value="0"></label></div></div>
+ <div class="card" id="simOut"></div>`};
+A={};
+A.sim_init=()=>{const R=agg();const f=()=>{const g=id=>+$('#'+id).value||0;
+ const price=1+g('s1')/100,vol=1+g('s2')/100,dc=g('s3'),fc=1+g('s4')/100,fx=1+g('s5')/100,mv=g('s6')/100;
+ const a=R.byCh.app,d=R.byCh.direct,o={...R.byCh};
+ // volume & price
+ let rev=0,cogs=0,comm=0,del=0;
+ for(const k in R.byCh){let b={...R.byCh[k]};let r=b.rev,cg=b.cogs,dl=b.del;
+  if(k==='app'){const mv_r=r*mv;r-=mv_r;cg-=cg*mv;dl-=dl*mv}
+  if(k==='direct'){r+=a.rev*mv;cg+=a.cogs*mv;dl+=a.del*mv*0+ (S.channels.direct.del? a.rev*mv/Math.max(1,a.rev)*0:0)}
+  const cm=S.channels[k].comm+(k==='app'?dc:0);
+  rev+=r*price*vol;cogs+=cg*vol*fc;comm+=r*price*vol*cm/100;del+=dl*vol}
+ const varx=R.varx*vol,fixed=R.fixed*fx,net=rev-cogs-comm-del-varx-fixed,cmr=rev?(rev-cogs-comm-del-varx)/rev:0,be=cmr>0?fixed/cmr:NaN;
+ const d2=net-R.net;
+ $('#simOut').innerHTML=`<div class="grid">${kpi('المبيعات',M(rev))}${kpi('صافي الربح الجديد',M(net),net>=0?'pos':'neg')}${kpi('الفرق عن الحالي',(d2>=0?'+':'')+M(d2),d2>=0?'pos':'neg')}${kpi('نقطة التعادل',isFinite(be)?M(be):'-','s')}</div>
+ <div class="al ${d2>=0?'i':'c'}">${d2>=0?'السيناريو يحسّن الربح':'السيناريو يضعف الربح'} — ${Math.abs(d2)<1?'بلا تغير يُذكر':'بفارق '+M(Math.abs(d2))} خلال ${S.settings.period} يوم. <span class="note">افتراضات: الخامات تتحرك مع الحجم، والمصروفات المتغيرة بنفس نسبة الحجم، التحويل للمباشر يحتفظ بتكلفة التوصيل الحالية للطلب المباشر.</span></div>`};
+ document.querySelectorAll('#s1,#s2,#s3,#s4,#s5,#s6').forEach(e=>e.oninput=f);f()};
+
+// ---- settings
+V.set=()=>`<h2>الإعدادات</h2><p class="sub">قنوات البيع والعمولات وفترة التحليل.</p>
+ <div class="card"><div class="row"><label>فترة التحليل (يوم)<select id="sp">${[7,14,30].map(n=>`<option${n===S.settings.period?' selected':''}>${n}</option>`).join('')}</select></label></div>
+ <div class="tw"><table><tr><th>القناة</th><th>عمولة %</th><th>تكلفة توصيل للطلب</th></tr>${Object.entries(S.channels).map(([k,c])=>`<tr><td>${c.name}</td><td><input type="number" data-cc="${k}:comm" value="${c.comm}"></td><td><input type="number" data-cc="${k}:del" value="${c.del}"></td></tr>`).join('')}</table></div>
+ <div class="row" style="margin-top:10px"><button class="b" data-act="saveSet">حفظ</button><button class="b r" data-act="reset">إعادة بيانات المطعم التجريبي</button></div>
+ <div class="note">البيانات تُحفظ على جهازك في المتصفح فقط (لا خادم). النسخة الإنتاجية: قاعدة بيانات سحابية وصلاحيات وتعدد مطاعم.</div></div>`;
+
+// ---------- actions ----------
+document.addEventListener('click',e=>{
+ const t=e.target.closest('[data-tab]');if(t)return go(t.dataset.tab);
+ const b=e.target.closest('[data-act]');if(!b)return;const d=b.dataset;
+ const a=d.act;
+ if(a==='addLine'){draft.lines.push({ing:S.ing[0].id,qty:1,unit:1000,total:0});render()}
+ else if(a==='delLine'){draft.lines.splice(+d.i,1);if(!draft.lines.length)draft.lines.push({ing:S.ing[0].id,qty:1,unit:1,total:0});render()}
+ else if(a==='ocr'){draft.supplier='مورد A';draft.lines=[['chicken',10,1000,1200,.97],['mozz',5,1000,1650,.91],['pasta',20,1000,1000,.78],['cream',4,1000,600,.88]].map(x=>({ing:x[0],qty:x[1],unit:x[2],total:x[3],conf:x[4]}));render()}
+ else if(a==='saveInv'){const ls=draft.lines.filter(l=>l.qty>0&&l.total>0);if(!ls.length)return alert('أدخل بندًا واحدًا على الأقل');
+  const tot=ls.reduce((s,l)=>s+l.total,0);const dup=S.inv.some(v=>v.supplier===draft.supplier&&v.date===draft.date&&v.lines.reduce((s,l)=>s+l.total,0)===tot);
+  S.inv.push({id:uid(),supplier:draft.supplier,date:draft.date,lines:ls.map(l=>({ing:l.ing,qty:+l.qty,unit:+l.unit,total:+l.total})),status:'pending',dup,img:null});draft=null;save();render()}
+ else if(a==='appr'){const v=S.inv.find(x=>x.id===d.id);for(const l of v.lines){const g=ING(l.ing);const q=l.qty*l.unit,np=l.total/q;const old=g.last;
+   g.cost=(g.stock*g.cost+q*np)/(g.stock+q);g.stock+=q;if(old&&Math.abs(np-old)/old>.02)S.plog.push({date:v.date,ing:g.id,name:g.name,old,new:np,pct:(np-old)/old*100});g.last=np;g.supplier=v.supplier}
+  v.status='approved';save();render()}
+ else if(a==='rej'){S.inv.find(x=>x.id===d.id).status='rejected';save();render()}
+ else if(a==='count'){let n=0;document.querySelectorAll('[data-cnt]').forEach(i=>{if(i.value==='')return;const g=ING(i.dataset.cnt),act=+i.value,theo=g.stock,diff=act-theo;
+   if(diff===0)return;S.counts.push({date:today(),ing:g.id,name:g.name,unit:g.unit,theo,act,diff,pct:theo?diff/theo*100:0,val:diff*g.cost});g.stock=act;n++});save();render()}
+ else if(a==='addIng'){const n=$('#ni_n').value.trim();if(!n)return;S.ing.push({id:uid(),name:n,unit:$('#ni_u').value,cost:+$('#ni_c').value||0,yield:100,stock:0,min:+$('#ni_m').value||0,supplier:$('#ni_s').value,last:+$('#ni_c').value||0});save();render()}
+ else if(a==='delItem'){REC(d.r).items.splice(+d.k,1);save();render()}
+ else if(a==='addItem'){const q=+document.querySelector(`[data-addq="${d.r}"]`).value;if(!q)return;REC(d.r).items.push({ing:document.querySelector(`[data-addsel="${d.r}"]`).value,qty:q});save();render()}
+ else if(a==='delRec'){if(confirm('حذف الوصفة؟')){S.rec=S.rec.filter(r=>r.id!==d.r);save();render()}}
+ else if(a==='addRec'){const n=$('#nr_n').value.trim();if(!n)return;S.rec.push({id:uid(),name:n,cat:$('#nr_c').value,items:[],prices:{dine:0,direct:0,app:0}});save();render()}
+ else if(a==='setTarget'){S.target=+$('#tg').value||30;save();render()}
+ else if(a==='applySug'){if(!d.v)return;REC(d.r).prices[d.k]=+d.v;save();render()}
+ else if(a==='cartAdd'){const c=cart.find(x=>x.rid===d.r);c?c.qty++:cart.push({rid:d.r,qty:1});render()}
+ else if(a==='cartDel'){cart.splice(+d.i,1);render()}
+ else if(a==='sell'){if(!cart.length)return;const ch=$('#pch').value,disc=+$('#pdisc').value||0;
+   const items=cart.map(c=>({rid:c.rid,qty:c.qty,price:REC(c.rid).prices[ch],cost:recCost(REC(c.rid)).total}));
+   for(const c of cart)for(const it of REC(c.rid).items){const g=ING(it.ing);g.stock-=c.qty*it.qty/(g.yield/100)}
+   S.sales.push({id:uid(),date:today(),ch,items,disc,orders:1});cart=[];save();render()}
+ else if(a==='addExp'){const am=+$('#ea').value;if(!am)return;S.exp.push({id:uid(),date:$('#ed').value,cat:$('#ec').value,type:$('#et').value,amount:am,note:$('#en').value});save();render()}
+ else if(a==='delExp'){S.exp=S.exp.filter(x=>x.id!==d.id);save();render()}
+ else if(a==='ask'){chat.push({u:1,t:esc(d.q)},{t:answer(d.q)});render()}
+ else if(a==='askTxt'){const q=$('#aq').value.trim();if(!q)return;chat.push({u:1,t:esc(q)},{t:answer(q)});render()}
+ else if(a==='saveSet'){S.settings.period=+$('#sp').value;document.querySelectorAll('[data-cc]').forEach(i=>{const[k,f]=i.dataset.cc.split(':');S.channels[k][f]=+i.value||0});save();render()}
+ else if(a==='reset'){if(confirm('سيتم مسح بياناتك وإعادة بيانات المطعم التجريبي. متابعة؟')){S=seed();save();draft=null;cart=[];chat=[];render()}}
+});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='pch'){draftCh=t.value;render();return}
+ if(t.id==='invImg'&&t.files[0]){const fr=new FileReader();fr.onload=()=>{draft.img=fr.result;render()};fr.readAsDataURL(t.files[0]);return}
+ if(t.dataset.d==='ing'){draft.lines[+t.dataset.i].ing=t.value;draft.lines[+t.dataset.i].unit=UNITS[ING(t.value).unit][0][1];render();return}
+ if(t.dataset.pr){const[r,k]=t.dataset.pr.split(':');REC(r).prices[k]=+t.value||0;save();render();return}
+ if(t.dataset.rq){const[r,k]=t.dataset.rq.split(':');REC(r).items[+k].qty=+t.value||0;save();render();return}
+ if(t.dataset.ey){ING(t.dataset.ey).yield=Math.max(1,Math.min(100,+t.value||100));save();render()}
+});
+document.addEventListener('input',e=>{const t=e.target,k=t.dataset.d;if(!k||!draft)return;
+ if(k==='supplier'||k==='date'){draft[k]=t.value;return}
+ if(t.dataset.i!==undefined&&k!=='ing')draft.lines[+t.dataset.i][k]=+t.value||0});
+render();
+</script></body></html>
