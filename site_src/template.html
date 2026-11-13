@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FOODPILOT AI | إدارة وربحية المطاعم</title>
+<meta name="description" content="منصة SaaS لإدارة المطاعم وتحويل بيانات التشغيل والفواتير والمبيعات إلى تكلفة دقيقة وقرارات ربحية.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#17231c;--mute:#5d6b62;--line:#e1e6df;--brand:#0f7a4d;--brand2:#e8590c;--soft:#e6f4ec;--crit:#c92a2a;--high:#e8590c;--mid:#1c7ed6}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1512;--card:#18211c;--ink:#e8efe9;--mute:#9bab9f;--line:#2a372f;--brand:#3ccf8e;--brand2:#ff8c42;--soft:#1b2d24;--crit:#ff6b6b;--high:#ff8c42;--mid:#5aa9ff}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Cairo,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+a{color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+header.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:16px;height:56px;overflow-x:auto;white-space:nowrap}
+.logo{font-weight:800;color:var(--brand);font-size:18px;text-decoration:none}
+.nav a.l{font-size:14px;color:var(--mute);text-decoration:none;padding:4px 8px;border-radius:8px}
+.nav a.l:hover{background:var(--soft);color:var(--brand)}
+.hero{padding:56px 0 40px}
+.hero h1{font-size:clamp(30px,6vw,52px);line-height:1.2;margin:0 0 12px;font-weight:800}
+.hero h1 span{color:var(--brand)}
+.hero p{font-size:18px;color:var(--mute);max-width:720px;margin:0 0 24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:28px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat b{display:block;font-size:28px;color:var(--brand);font-weight:800}
+.stat small{color:var(--mute)}
+.btn{display:inline-block;background:var(--brand);color:#fff;padding:10px 20px;border-radius:12px;text-decoration:none;font-weight:700;border:0;cursor:pointer;font-family:inherit;font-size:15px}
+.btn.o{background:transparent;color:var(--brand);border:1.5px solid var(--brand);margin-inline-start:8px}
+section{padding:36px 0;scroll-margin-top:60px}
+h2{font-size:28px;margin:0 0 4px;font-weight:800}
+.sub{color:var(--mute);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h3{margin:0 0 6px;font-size:17px}
+.card p{margin:0;color:var(--mute);font-size:14px}
+.feat .top{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.num{background:var(--soft);color:var(--brand);font-weight:800;border-radius:10px;padding:2px 9px;font-size:13px}
+.badge{margin-inline-start:auto;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;border:1px solid currentColor}
+.p-حرج{color:var(--crit)}.p-عالي{color:var(--high)}.p-متوسط{color:var(--mid)}
+.feat .who{margin-top:10px;font-size:12px;color:var(--mute)}
+.feat details summary{cursor:pointer;color:var(--brand);font-size:13px;margin-top:8px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tools input,.tools select,.f input,.f select{font-family:inherit;font-size:15px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.tools input{flex:1;min-width:200px}
+.chip{padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-family:inherit;color:var(--ink)}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14px}
+th,td{padding:10px 12px;text-align:start;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--soft);color:var(--brand)}
+tr:last-child td{border-bottom:0}
+.tw{overflow-x:auto}
+.formula{font-family:ui-monospace,monospace;direction:rtl;font-size:13px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.step{background:var(--soft);padding:3px 10px;border-radius:8px;font-size:13px}
+.arrow{color:var(--brand2)}
+.qa{margin-top:8px;font-size:13px;color:var(--mute);border-top:1px dashed var(--line);padding-top:8px}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.calc{grid-template-columns:1fr}}
+.f label{display:block;font-size:13px;color:var(--mute);margin-top:10px}
+.f input{width:100%}
+.res .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.res .row.t{font-weight:800;font-size:17px;border-bottom:0;color:var(--brand)}
+.neg{color:var(--crit)!important}
+.road{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.road .card{border-top:4px solid var(--brand)}
+.road .card:nth-child(2){border-top-color:var(--mid)}.road .card:nth-child(3){border-top-color:var(--brand2)}.road .card:nth-child(4){border-top-color:var(--crit)}
+.goal{margin-top:10px;font-weight:700;color:var(--brand);font-size:13px}
+.risk .rm{color:var(--crit);font-size:13px}.risk .fx{color:var(--brand);font-size:13px;margin-top:6px}
+footer{padding:30px 0;color:var(--mute);text-align:center;font-size:13px;border-top:1px solid var(--line);margin-top:30px}
+.empty{color:var(--mute);padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+<a class="logo" href="#top">FOODPILOT AI</a>
+<a class="l" href="#features">الخصائص</a><a class="l" href="#tools">الحاسبات</a><a class="l" href="#formulas">المعادلات</a><a class="l" href="#flows">السيناريوهات</a><a class="l" href="#dash">اللوحات</a><a class="l" href="#roles">الصلاحيات</a><a class="l" href="#roadmap">الخارطة</a><a class="l" href="#risks">المخاطر</a>
+</div></header>
+
+<main id="top">
+<div class="wrap hero">
+<h1>اعرف <span>التكلفة الحقيقية</span> لكل صنف، وكل قناة، وكل فرع</h1>
+<p id="heroP"></p>
+<a class="btn" href="#tools">جرّب الحاسبات</a><a class="btn o" href="#features">استعرض الخصائص</a>
+<div class="stats" id="stats"></div>
+<div class="grid" id="overview" style="margin-top:28px"></div>
+</div>
+
+<div class="wrap"><section id="features">
+<h2>خريطة الخصائص</h2><p class="sub">30 موديول وظيفي — ابحث أو صفّ حسب الأولوية.</p>
+<div class="tools"><input id="q" type="search" placeholder="ابحث في الخصائص…"><span id="chips"></span></div>
+<div class="grid" id="featGrid"></div>
+</section></div>
+
+<div class="wrap"><section id="tools">
+<h2>حاسبات تفاعلية</h2><p class="sub">أمثلة حية لمنطق المحرك المالي — القيم افتراضية قابلة للتعديل.</p>
+<div class="calc">
+<div class="card f"><h3>محرك التسعير وصافي القناة</h3>
+<label>تكلفة الطعام للوصفة<input type="number" id="c_food" value="35"></label>
+<label>تكلفة التغليف<input type="number" id="c_pack" value="4"></label>
+<label>عمولة المنصة %<input type="number" id="c_com" value="22"></label>
+<label>رسوم الدفع %<input type="number" id="c_pay" value="2"></label>
+<label>تكلفة توصيل يتحملها المطعم<input type="number" id="c_del" value="0"></label>
+<label>خصم يتحمله المطعم %<input type="number" id="c_disc" value="5"></label>
+<label>هامش الربح المستهدف % (من سعر البيع)<input type="number" id="c_m" value="30"></label>
+<label>سعر البيع الحالي (اختياري للتحليل)<input type="number" id="c_cur" value="99"></label>
+</div>
+<div class="card res"><h3>النتيجة</h3><div id="r1"></div></div>
+</div>
+<div class="calc" style="margin-top:16px">
+<div class="card f"><h3>نقطة التعادل</h3>
+<label>التكاليف الثابتة للفترة (إيجار، رواتب، مرافق…)<input type="number" id="b_fix" value="120000"></label>
+<label>صافي المبيعات الفعلي للفترة<input type="number" id="b_sales" value="300000"></label>
+<label>التكاليف المتغيرة (خامات + تغليف + عمولات) من المبيعات<input type="number" id="b_var" value="180000"></label>
+<label>تكلفة العمالة<input type="number" id="b_lab" value="60000"></label>
+</div>
+<div class="card res"><h3>المؤشرات</h3><div id="r2"></div></div>
+</div>
+<div class="calc" style="margin-top:16px">
+<div class="card f"><h3>محاكي القرارات (ماذا لو؟)</h3>
+<label>تغير المبيعات %<input type="number" id="s_sales" value="20"></label>
+<label>تغير تكلفة الخامات %<input type="number" id="s_food" value="0"></label>
+<label>تغير الإيجار/الرواتب الثابتة %<input type="number" id="s_fix" value="0"></label>
+<label>تغير نسبة عمولة التطبيقات (نقطة مئوية)<input type="number" id="s_com" value="0"></label>
+<small style="color:var(--mute)">يعتمد على بيانات حاسبة نقطة التعادل أعلاه، وعلى افتراض أن 40% من المبيعات عبر التطبيقات.</small>
+</div>
+<div class="card res"><h3>أثر السيناريو</h3><div id="r3"></div></div>
+</div>
+<div class="calc" style="margin-top:16px">
+<div class="card f"><h3>تكلفة الجرام وYield</h3>
+<label>سعر شراء الوحدة (مثلاً كجم)<input type="number" id="y_price" value="320"></label>
+<label>عدد الجرامات في وحدة الشراء<input type="number" id="y_g" value="1000"></label>
+<label>الوزن قبل التجهيز (جم)<input type="number" id="y_in" value="1000"></label>
+<label>الوزن الصالح بعد التجهيز (جم)<input type="number" id="y_out" value="780"></label>
+<label>الكمية في الوصفة (جم)<input type="number" id="y_rec" value="120"></label>
+</div>
+<div class="card res"><h3>النتيجة</h3><div id="r4"></div></div>
+</div>
+</section></div>
+
+<div class="wrap"><section id="formulas"><h2>المعادلات والمؤشرات</h2><p id="fsub" class="sub"></p><div class="tw"><table id="fTbl"></table></div></section></div>
+<div class="wrap"><section id="flows"><h2>سيناريوهات التشغيل</h2><p id="flsub" class="sub"></p><div class="grid" id="flGrid"></div></section></div>
+<div class="wrap"><section id="dash"><h2>لوحات وتقارير</h2><p id="dsub" class="sub"></p><div class="grid" id="dGrid"></div></section></div>
+<div class="wrap"><section id="roles"><h2>الصلاحيات والتكاملات</h2><p id="rsub" class="sub"></p>
+<h3>الأدوار</h3><div class="grid" id="roleGrid"></div><h3 style="margin-top:24px">التكاملات</h3><div class="grid" id="intGrid"></div></section></div>
+<div class="wrap"><section id="roadmap"><h2>خارطة التنفيذ</h2><p id="rmsub" class="sub"></p><div class="road" id="road"></div></section></div>
+<div class="wrap"><section id="risks"><h2>ضوابط ومخاطر</h2><p id="ksub" class="sub"></p><div class="grid" id="riskGrid"></div></section></div>
+</main>
+<footer>FOODPILOT AI — نموذج أولي تفاعلي مبني من وثيقة المتطلبات. الأرقام في الحاسبات تجريبية.</footer>
+
+<script>
+const D=__DATA__;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rows=(k,skip)=>D[k].slice(skip);
+const ov=rows('نظرة عامة',3);
+$('#heroP').textContent=ov.find(r=>r[0]==='التعريف')[1];
+$('#overview').innerHTML=ov.filter(r=>r[0]!=='التعريف'&&r[0]!=='اسم المشروع').map(r=>`<div class="card"><h3>${esc(r[0])}</h3><p>${esc(r[1])}</p></div>`).join('');
+
+// features
+const feats=rows('الخصائص والفيتشرز',3);
+const cnt=p=>feats.filter(f=>f[3]===p).length;
+$('#stats').innerHTML=[[feats.length,'موديول'],[cnt('حرج'),'أولوية حرجة'],[rows('خارطة التنفيذ',3).length,'مراحل تنفيذ'],[rows('المعادلات والمؤشرات',3).length,'مؤشر مالي']].map(s=>`<div class="stat"><b>${s[0]}</b><small>${s[1]}</small></div>`).join('');
+let pf='الكل';
+const pr=['الكل','حرج','عالي','متوسط'];
+$('#chips').innerHTML=pr.map(p=>`<button class="chip${p===pf?' on':''}" data-p="${p}">${p}${p!=='الكل'?' ('+cnt(p)+')':''}</button>`).join(' ');
+function renderF(){
+  const q=$('#q').value.trim();
+  const l=feats.filter(f=>(pf==='الكل'||f[3]===pf)&&(!q||f.join(' ').includes(q)));
+  $('#featGrid').innerHTML=l.length?l.map(f=>{
+    const parts=f[2].split('؛').map(s=>s.trim()).filter(Boolean);
+    return `<div class="card feat"><div class="top"><span class="num">${esc(f[0])}</span><h3 style="margin:0">${esc(f[1])}</h3><span class="badge p-${f[3]}">${esc(f[3])}</span></div>
+    <p>${esc(parts.slice(0,2).join('؛ '))}${parts.length>2?'…':''}</p>
+    ${parts.length>2?`<details><summary>كل التفاصيل (${parts.length})</summary><ul style="margin:6px 0 0;padding-inline-start:20px;font-size:13px;color:var(--mute)">${parts.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></details>`:''}
+    <div class="who">👤 ${esc(f[4])}</div></div>`}).join(''):'<div class="empty">لا نتائج</div>';
+}
+$('#chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;pf=b.dataset.p;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c===b));renderF()};
+$('#q').oninput=renderF;renderF();
+
+// formulas
+const F=D['المعادلات والمؤشرات'];$('#fsub').textContent=F[1][0];
+$('#fTbl').innerHTML='<tr><th>المؤشر</th><th>طريقة الحساب</th><th>ملاحظات</th></tr>'+rows('المعادلات والمؤشرات',3).map(r=>`<tr><td><b>${esc(r[0])}</b></td><td class="formula">${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('');
+// flows
+$('#flsub').textContent=D['سيناريوهات التشغيل'][1][0];
+$('#flGrid').innerHTML=rows('سيناريوهات التشغيل',3).map(r=>`<div class="card"><h3>${esc(r[0])}</h3><div class="steps">${r[1].split('←').map((s,i)=>(i?'<span class="arrow">←</span>':'')+`<span class="step">${esc(s.trim())}</span>`).join('')}</div><div class="qa">✔ ${esc(r[2])}</div></div>`).join('');
+// dashboards
+$('#dsub').textContent=D['لوحات وتقارير'][1][0];
+$('#dGrid').innerHTML=rows('لوحات وتقارير',3).map(r=>`<div class="card"><h3>${esc(r[0])}</h3><p>${esc(r[1])}</p></div>`).join('');
+// roles
+const R=D['الصلاحيات والتكاملات'];$('#rsub').textContent=R[1][0];
+const ti=R.findIndex(r=>r[0]==='التكاملات');
+$('#roleGrid').innerHTML=R.slice(3,ti).map(r=>`<div class="card"><h3>${esc(r[0])}</h3><p>${esc(r[1])}</p></div>`).join('');
+$('#intGrid').innerHTML=R.slice(ti+2).map(r=>`<div class="card"><h3>${esc(r[0])}</h3><p>${esc(r[1])}</p></div>`).join('');
+// roadmap
+$('#rmsub').textContent=D['خارطة التنفيذ'][1][0];
+$('#road').innerHTML=rows('خارطة التنفيذ',3).map(r=>`<div class="card"><h3>${esc(r[0])}</h3><p>${esc(r[1])}</p><div class="goal">🎯 ${esc(r[2])}</div></div>`).join('');
+// risks
+$('#ksub').textContent=D['ضوابط ومخاطر'][1][0];
+$('#riskGrid').innerHTML=rows('ضوابط ومخاطر',3).map(r=>`<div class="card risk"><h3>${esc(r[0])}</h3><div class="rm">⚠ ${esc(r[1])}</div><div class="fx">✔ ${esc(r[2])}</div></div>`).join('');
+
+// calculators
+const n=id=>parseFloat($('#'+id).value)||0;
+const f2=x=>(isFinite(x)?x:0).toLocaleString('ar-EG',{maximumFractionDigits:2});
+const row=(a,b,c)=>`<div class="row${c||''}"><span>${a}</span><span>${b}</span></div>`;
+function calc(){
+  // pricing: price*(1-disc)*(1-com-pay) - food - pack - del = price*m
+  const cost=n('c_food')+n('c_pack')+n('c_del'),k=(1-n('c_disc')/100)*(1-(n('c_com')+n('c_pay'))/100),m=n('c_m')/100;
+  const sug=(k-m)>0?cost/(k-m):NaN;
+  const net=p=>p*k-cost;
+  const cur=n('c_cur'),netC=net(cur);
+  $('#r1').innerHTML=row('إجمالي التكلفة المباشرة',f2(cost))+row('نسبة ما يصل للمطعم من كل ريال',f2(k*100)+'%')+
+   row('السعر المقترح للقناة',isFinite(sug)?f2(sug):'غير ممكن','')+
+   row('صافي ربح الوحدة عند السعر المقترح',isFinite(sug)?f2(net(sug)):'-')+
+   row('صافي ربح الوحدة عند السعر الحالي ('+f2(cur)+')',f2(netC),netC<0?' neg':'')+
+   row('الهامش الفعلي عند السعر الحالي',cur?f2(netC/cur*100)+'%':'-',netC<0?' neg':'');
+  const fix=n('b_fix'),s=n('b_sales'),v=n('b_var'),lab=n('b_lab');
+  const cm=s-v,cmr=s?cm/s:0,be=cmr>0?fix/cmr:NaN,op=cm-fix;
+  $('#r2').innerHTML=row('هامش المساهمة',f2(cm))+row('نسبة هامش المساهمة',f2(cmr*100)+'%')+
+   row('نقطة التعادل (مبيعات)',isFinite(be)?f2(be):'-')+row('Labor Cost %',s?f2(lab/s*100)+'%':'-')+
+   row('Prime Cost %',s?f2((v*0.6+lab)/s*100)+'% <small>(الخامات ≈60% من المتغير)</small>':'-')+
+   row('الربح التشغيلي',f2(op),op<0?' t neg':' t')+
+   row('هامش الأمان',isFinite(be)&&s?f2((s-be)/s*100)+'%':'-');
+  const ns=s*(1+n('s_sales')/100),appShare=0.4;
+  let nv=v*(ns/(s||1));nv*=1+n('s_food')/100*0.6/ (1) ; // food portion ~60% of variable
+  nv=v*(ns/(s||1))*(1+0.6*n('s_food')/100)+ns*appShare*n('s_com')/100;
+  const nf=fix*(1+n('s_fix')/100),np=ns-nv-nf,d=np-op,nbe=(ns-nv)>0?nf/((ns-nv)/ns):NaN;
+  $('#r3').innerHTML=row('مبيعات جديدة',f2(ns))+row('الربح التشغيلي بعد السيناريو',f2(np),np<0?' neg':'')+
+   row('الفرق عن الوضع الحالي',(d>=0?'+':'')+f2(d),d<0?' neg':'')+row('نقطة التعادل الجديدة',isFinite(nbe)?f2(nbe):'-')+
+   row('الحكم',np>op?'تحسن في الربح ✅':np<op?'تراجع في الربح ⚠':'بلا تغير',' t');
+  const pg=n('y_price')/(n('y_g')||1),yl=n('y_in')?n('y_out')/n('y_in'):0,ug=yl?pg/yl:NaN;
+  $('#r4').innerHTML=row('تكلفة الجرام الخام',f2(pg))+row('Yield',f2(yl*100)+'%')+row('تكلفة الجرام الصالح',f2(ug))+row('تكلفة المكون في الوصفة',f2(ug*n('y_rec')),' t');
+}
+document.querySelectorAll('.f input').forEach(i=>i.oninput=calc);calc();
+</script>
+</body>
+</html>
