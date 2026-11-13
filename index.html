@@ -77,7 +77,7 @@ footer{padding:30px 0;color:var(--mute);text-align:center;font-size:13px;border-
 <body>
 <header class="nav"><div class="wrap">
 <a class="logo" href="#top">FOODPILOT AI</a>
-<a class="l" href="#features">الخصائص</a><a class="l" href="#tools">الحاسبات</a><a class="l" href="#formulas">المعادلات</a><a class="l" href="#flows">السيناريوهات</a><a class="l" href="#dash">اللوحات</a><a class="l" href="#roles">الصلاحيات</a><a class="l" href="#roadmap">الخارطة</a><a class="l" href="#risks">المخاطر</a>
+<a class="l" href="#vision">الفكرة</a><a class="l" href="#features">الخصائص</a><a class="l" href="#recipe">الوصفة</a><a class="l" href="#menu">المنيو</a><a class="l" href="#tools">الحاسبات</a><a class="l" href="#formulas">المعادلات</a><a class="l" href="#flows">السيناريوهات</a><a class="l" href="#dash">اللوحات</a><a class="l" href="#roles">الصلاحيات</a><a class="l" href="#plans">الباقات</a><a class="l" href="#roadmap">الخارطة</a><a class="l" href="#extras">الإضافات</a><a class="l" href="#risks">المخاطر</a>
 </div></header>
 
 <main id="top">
@@ -89,6 +89,14 @@ footer{padding:30px 0;color:var(--mute);text-align:center;font-size:13px;border-
 <div class="grid" id="overview" style="margin-top:28px"></div>
 </div>
 
+
+<div class="wrap"><section id="vision">
+<h2>الفكرة الأساسية</h2><p class="sub">نظام ذكاء مالي وتشغيلي للمطاعم والكافيهات والمطابخ السحابية — وليس برنامج كاشير أو مخازن.</p>
+<div class="grid" id="roleAI"></div>
+<h3 style="margin-top:24px">5 أسئلة مصيرية يجيب عنها النظام</h3>
+<div class="grid" id="fiveQ"></div>
+<div class="card" style="margin-top:16px;border-inline-start:4px solid var(--brand)"><h3>القرار الأهم</h3><p>كل الأرقام مترابطة: المشتريات ← الفواتير ← المخزون ← الوصفات ← التكلفة ← المبيعات ← المصروفات ← الربحية ← القرارات. لا تُحسب تكلفة منتج بمعزل عن المخزون، ولا ربح بمعزل عن عمولات التطبيقات.</p></div>
+</section></div>
 <div class="wrap"><section id="features">
 <h2>خريطة الخصائص</h2><p class="sub">30 موديول وظيفي — ابحث أو صفّ حسب الأولوية.</p>
 <div class="tools"><input id="q" type="search" placeholder="ابحث في الخصائص…"><span id="chips"></span></div>
@@ -141,13 +149,52 @@ footer{padding:30px 0;color:var(--mute);text-align:center;font-size:13px;border-
 </div>
 </section></div>
 
+
+<div class="wrap"><section id="recipe">
+<h2>تكلفة الوصفة بالجرامات — مثال</h2><p class="sub">باستا تشيكن ألفريدو: عدّل الكمية وسعر الجرام وشاهد التكلفة تتحدث (أرقام توضيحية).</p>
+<div class="calc"><div class="card"><div class="tw"><table id="rcTbl"></table></div></div>
+<div class="card res"><h3>إجمالي الوصفة</h3><div id="rcRes"></div>
+<p style="color:var(--mute);font-size:13px;margin-top:12px">الوصفة الفرعية (مثل صوص ألفريدو) تُحسب مرة واحدة وتُوزع على المنتجات حسب الجرامات. الهالك: شراء 10 كجم فراخ ← 8.5 كجم بعد التنظيف = هالك 15%.</p></div></div>
+<h3 style="margin-top:24px">تسعير نفس المنتج حسب القناة</h3>
+<div class="tw"><table id="chTbl"></table></div>
+<h3 style="margin-top:24px">مقارنة الموردين (موزاريلا)</h3>
+<div class="card f"><div class="tw"><table id="supTbl"></table></div><label>الكمية الشهرية (كجم)<input type="number" id="sup_q" value="100"></label><div id="supRes" style="margin-top:10px;font-weight:700;color:var(--brand)"></div></div>
+</section></div>
+
+<div class="wrap"><section id="menu">
+<h2>هندسة المنيو (Menu Engineering)</h2><p class="sub">أدخل مبيعات وربح كل صنف ليصنفه النظام تلقائيًا (تجريبي).</p>
+<div class="calc"><div class="card"><div class="tw"><table id="meTbl"></table></div><button class="btn" id="meAdd" style="margin-top:10px">+ صنف</button></div>
+<div class="card"><h3>التصنيف</h3><div id="meRes"></div></div></div>
+<div class="grid" style="margin-top:16px" id="meGuide"></div>
+<h3 style="margin-top:24px">عمولة المنصات: هل التطبيق مربح؟</h3>
+<div class="calc"><div class="card f"><label>مبيعات التطبيق<input type="number" id="a_s" value="300000"></label><label>العمولة %<input type="number" id="a_c" value="30"></label><label>تكلفة الخامات والتغليف % من المبيعات<input type="number" id="a_f" value="38"></label><label>نسبة تكلفة الطلب المباشر (خامات+توصيل) %<input type="number" id="a_d" value="45"></label></div>
+<div class="card res"><div id="aRes"></div></div></div>
+</section></div>
 <div class="wrap"><section id="formulas"><h2>المعادلات والمؤشرات</h2><p id="fsub" class="sub"></p><div class="tw"><table id="fTbl"></table></div></section></div>
 <div class="wrap"><section id="flows"><h2>سيناريوهات التشغيل</h2><p id="flsub" class="sub"></p><div class="grid" id="flGrid"></div></section></div>
 <div class="wrap"><section id="dash"><h2>لوحات وتقارير</h2><p id="dsub" class="sub"></p><div class="grid" id="dGrid"></div></section></div>
 <div class="wrap"><section id="roles"><h2>الصلاحيات والتكاملات</h2><p id="rsub" class="sub"></p>
 <h3>الأدوار</h3><div class="grid" id="roleGrid"></div><h3 style="margin-top:24px">التكاملات</h3><div class="grid" id="intGrid"></div></section></div>
+
+<div class="wrap"><section id="plans">
+<h2>باقات الاشتراك (SaaS)</h2><p class="sub">شركة تكنولوجيا تخدم آلاف المطاعم — كل مطعم بحساب مستقل وفترة تجريبية.</p>
+<div class="grid" id="planGrid"></div>
+<p class="sub" style="margin-top:12px">الفروق: عدد الفروع، المستخدمين، حجم العمليات، عدد الفواتير المقروءة بالـAI، التقارير المتقدمة، خصائص الذكاء الاصطناعي، التكاملات.</p>
+</section></div>
 <div class="wrap"><section id="roadmap"><h2>خارطة التنفيذ</h2><p id="rmsub" class="sub"></p><div class="road" id="road"></div></section></div>
 <div class="wrap"><section id="risks"><h2>ضوابط ومخاطر</h2><p id="ksub" class="sub"></p><div class="grid" id="riskGrid"></div></section></div>
+
+<div class="wrap"><section id="extras">
+<h2>مرحلة التنفيذ وMVP ومقاييس النجاح</h2><p class="sub">ابدأ بخمس وحدات تحل المشكلة الأساسية، ثم وسّع بعد إثبات النجاح.</p>
+<div class="grid" id="mvp"></div>
+<h3 style="margin-top:24px">المراحل الـ12</h3><div class="steps" id="ph12"></div>
+<h3 style="margin-top:24px">مقاييس النجاح</h3><div class="steps" id="kpiS"></div>
+<h3 style="margin-top:24px">مستشار الـAI — مثال</h3>
+<div class="card"><p><b>سؤال المالك:</b> أنا ببيع بـ500 ألف جنيه، ليه مش شايف فلوس؟</p><p><b>الرد:</b> تكلفة الخامات 33%، المصاريف التشغيلية 20%، عمولات التطبيقات 25%، ثم الرواتب والإيجار… وصافي الربح كذا. التوصية: مراجعة تسعير أصناف التطبيقات وأكثر منتجين تأثرًا بارتفاع الأسعار، مع التوفير المتوقع.</p><p class="qa">كل رد مرتبط بأرقام المحرك المالي والفترة ومصدر الرقم.</p></div>
+<h3 style="margin-top:24px">3 إضافات للنسخة الاحترافية</h3>
+<div class="grid" id="pro"></div>
+<div class="card" style="margin-top:16px;border-inline-start:4px solid var(--brand2)"><h3>الرأي الاستراتيجي</h3><p>لا تبنِ برنامج إدارة مطاعم يسجل ما حدث؛ ابنِ نظام ذكاء مالي يفهم ما حدث ويحلله ويقول لصاحب المطعم ماذا يفعل بعد ذلك. <b>Your Restaurant. Your Numbers. Your Profit.</b></p></div>
+</section></div>
 </main>
 <footer>FOODPILOT AI — نموذج أولي تفاعلي مبني من وثيقة المتطلبات. الأرقام في الحاسبات تجريبية.</footer>
 
@@ -233,7 +280,49 @@ function calc(){
   const pg=n('y_price')/(n('y_g')||1),yl=n('y_in')?n('y_out')/n('y_in'):0,ug=yl?pg/yl:NaN;
   $('#r4').innerHTML=row('تكلفة الجرام الخام',f2(pg))+row('Yield',f2(yl*100)+'%')+row('تكلفة الجرام الصالح',f2(ug))+row('تكلفة المكون في الوصفة',f2(ug*n('y_rec')),' t');
 }
-document.querySelectorAll('.f input').forEach(i=>i.oninput=calc);calc();
+document.querySelectorAll('#tools .f input').forEach(i=>i.oninput=calc);calc();
+
+// ---- extra content ----
+const card=(h,p)=>`<div class="card"><h3>${h}</h3><p>${p}</p></div>`;
+$('#roleAI').innerHTML=[['مدير مالي','يعرف كل جنيه دخل وراح فين'],['محاسب تكاليف','تكلفة كل منتج بالجرام'],['مدير مخازن ومشتريات','مخزون وموردون وفواتير'],['محلل مبيعات','القنوات والفروع والأصناف'],['مستشار تسعير','سعر مناسب لكل قناة'],['مستشار استراتيجي','تشخيص وتوصيات مرتبة بالأثر']].map(a=>card(a[0],a[1])).join('');
+$('#fiveQ').innerHTML=['أنا بكسب كام فعلًا؟','كل منتج بيكسبني كام؟','فلوسي بتضيع فين؟','إيه اللي لازم أغيره عشان أربح أكتر؟','لو أخدت قرار معين، هيأثر على أرباحي إزاي؟'].map((q,i)=>`<div class="card"><span class="num">${i+1}</span> <b>${q}</b></div>`).join('');
+// recipe
+const ing=[['مكرونة',230,0.0217],['صدور فراخ',120,0.15],['كريمة',100,0.08],['موزاريلا',30,0.30],['زبدة وتوابل',20,0.2],['عبوة (قطعة)',1,5]];
+$('#rcTbl').innerHTML='<tr><th>المكون</th><th>الكمية</th><th>تكلفة الوحدة</th><th>التكلفة</th></tr>'+ing.map((r,i)=>`<tr><td>${r[0]}</td><td><input type="number" data-i="${i}" data-k="q" value="${r[1]}" style="width:80px"></td><td><input type="number" step="0.001" data-i="${i}" data-k="p" value="${r[2]}" style="width:80px"></td><td id="rc${i}"></td></tr>`).join('');
+function rc(){let tot=0;document.querySelectorAll('#rcTbl tr').forEach((tr,j)=>{if(!j)return;const i=j-1,q=+tr.querySelector('[data-k=q]').value||0,p=+tr.querySelector('[data-k=p]').value||0,c=q*p;ing[i][1]=q;ing[i][2]=p;tot+=c;$('#rc'+i).textContent=f2(c)});
+ const pack=ing[5][1]*ing[5][2];$('#rcRes').innerHTML=row('تكلفة الطعام',f2(tot-pack))+row('التغليف',f2(pack))+row('التكلفة المباشرة',f2(tot),' t')+row('Food Cost % عند سعر 150',f2((tot-pack)/150*100)+'%')+
+ `<div style="margin-top:8px;font-size:13px;color:var(--mute)">ملاحظة: تكلفة الجرام مأخوذة من آخر فاتورة معتمدة؛ التغيير هنا للتجربة فقط.</div>`}
+$('#rcTbl').oninput=rc;rc();
+const chs=[['داخل المطعم',150,0],['طلب مباشر',160,0],['تطبيق توصيل',195,30]];
+$('#chTbl').innerHTML='<tr><th>القناة</th><th>سعر البيع</th><th>عمولة</th><th>الصافي بعد العمولة</th></tr>'+chs.map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}%</td><td>${f2(c[1]*(1-c[2]/100))}</td></tr>`).join('');
+const sup=[['مورد A',300],['مورد B',285],['مورد C',315]];
+$('#supTbl').innerHTML='<tr><th>المورد</th><th>سعر الكيلو</th></tr>'+sup.map(s=>`<tr><td>${s[0]}</td><td>${s[1]}</td></tr>`).join('');
+function sp(){const q=+$('#sup_q').value||0,mn=Math.min(...sup.map(s=>s[1])),mx=Math.max(...sup.map(s=>s[1]));$('#supRes').textContent='الأرخص مورد B — التوفير مقابل الأغلى: '+f2((mx-mn)*q)+' شهريًا'}
+$('#sup_q').oninput=sp;sp();
+// menu engineering
+let me=[['باستا ألفريدو',420,60],['بيستو',90,75],['بيتزا',380,22],['سلطة',60,18],['برجر',300,48]];
+function renderME(){
+ $('#meTbl').innerHTML='<tr><th>الصنف</th><th>مبيعات (عدد)</th><th>ربح الوحدة</th></tr>'+me.map((r,i)=>`<tr><td><input value="${esc(r[0])}" data-i="${i}" data-k="0" style="width:110px"></td><td><input type="number" value="${r[1]}" data-i="${i}" data-k="1" style="width:80px"></td><td><input type="number" value="${r[2]}" data-i="${i}" data-k="2" style="width:80px"></td></tr>`).join('');
+ calcME()}
+function calcME(){
+ const tq=me.reduce((a,r)=>a+r[1],0),tp=me.reduce((a,r)=>a+r[1]*r[2],0),avgP=tp/(tq||1),thr=0.7/me.length;
+ const out={Stars:[],Plowhorses:[],Puzzles:[],Dogs:[]};
+ me.forEach(r=>{const hiS=r[1]/(tq||1)>=thr,hiP=r[2]>=avgP;out[hiS&&hiP?'Stars':hiS?'Plowhorses':hiP?'Puzzles':'Dogs'].push(r[0])});
+ const adv={Stars:'حافظ عليها وروّج لها',Plowhorses:'ارفع السعر أو خفّض التكلفة',Puzzles:'سوّق لها وحسّن ظهورها',Dogs:'راجع أو أوقف الصنف'};
+ $('#meRes').innerHTML=Object.keys(out).map(k=>row(k,out[k].join('، ')||'—')+`<div style="font-size:12px;color:var(--mute);margin-bottom:6px">${adv[k]}</div>`).join('')}
+$('#meTbl').oninput=e=>{const i=e.target.dataset.i,k=e.target.dataset.k;if(i===undefined)return;me[i][k]=k==='0'?e.target.value:(+e.target.value||0);calcME()};
+$('#meAdd').onclick=()=>{me.push(['صنف جديد',100,30]);renderME()};renderME();
+$('#meGuide').innerHTML=[['Stars','مبيعات عالية وربحية عالية'],['Plowhorses','مبيعات عالية وهامش منخفض'],['Puzzles','ربحية عالية ومبيعات ضعيفة'],['Dogs','مبيعات وربحية ضعيفة']].map(a=>card(a[0],a[1])).join('');
+function app(){const s=+$('#a_s').value||0,c=+$('#a_c').value/100,fp=+$('#a_f').value/100,dp=+$('#a_d').value/100;
+ const comm=s*c,appN=s*(1-c-fp),dirN=s*(1-dp);
+ $('#aRes').innerHTML=row('قيمة العمولة',f2(comm))+row('ربح التطبيق بعد العمولة والتكلفة',f2(appN),appN<0?' neg':'')+row('ربح نفس المبيعات لو مباشرة',f2(dirN))+row('الفرق',f2(dirN-appN),' t')}
+['a_s','a_c','a_f','a_d'].forEach(i=>$('#'+i).oninput=app);app();
+$('#planGrid').innerHTML=[['Starter','المطاعم الصغيرة'],['Professional','المطاعم المتوسطة'],['Business','المطاعم الكبيرة'],['Enterprise','سلاسل المطاعم']].map(a=>card(a[0],a[1])).join('');
+$('#mvp').innerHTML=['تصوير الفواتير وتحويلها إلى بيانات','حساب تكلفة المنتجات بالجرامات','إدارة المخزون والمشتريات','تسجيل جميع المصروفات','حساب صافي الربح ونقطة التعادل'].map((m,i)=>`<div class="card"><span class="num">${i+1}</span> <b>${m}</b></div>`).join('');
+$('#ph12').innerHTML=['تصميم النظام وقاعدة البيانات','إدارة الخامات والفواتير','قراءة الفواتير بالـAI','تكلفة المنتجات بالجرامات','المخزون والمشتريات','تسجيل المصروفات','الأرباح والخسائر','العمولات وقنوات البيع','لوحة تحليل المبيعات','مستشار الذكاء الاصطناعي','الفروع والموظفون','التكامل مع POS والتوصيل'].map((s,i)=>(i?'<span class="arrow">←</span>':'')+`<span class="step">${i+1}. ${s}</span>`).join('');
+$('#kpiS').innerHTML=['تقليل الهالك','اكتشاف فروق المخزون','تحسين تكلفة المنتجات','تحسين قرارات التسعير','تقليل المصاريف غير الضرورية','معرفة المنتجات الخاسرة','زيادة هامش الربح','تحسين التدفقات النقدية','تقليل وقت إعداد الحسابات'].map(s=>`<span class="step">${s}</span>`).join('');
+$('#pro').innerHTML=[['Restaurant Health Score','تقييم من 100 للربحية والتكاليف والمخزون والمبيعات والسيولة.'],['AI Business Doctor','تشخيص أي مشكلة وحلول مرتبة حسب الأولوية والأثر المالي.'],['Profit Forecasting','توقع أرباح الشهر القادم مع الافتراضات ودرجة الثقة.']].map(a=>card(a[0],a[1])).join('');
+
 </script>
 </body>
 </html>
