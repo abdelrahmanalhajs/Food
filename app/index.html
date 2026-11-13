@@ -106,22 +106,24 @@ function agg(){const sales=S.sales.filter(s=>inPeriod(s.date));let R={rev:0,cogs
  for(const s of sales){const c=saleCalc(s);R.rev+=c.gross;R.cogs+=c.cogs;R.comm+=c.comm;R.del+=c.del;R.units+=c.units;
   const b=R.byCh[s.ch];b.rev+=c.gross;b.cogs+=c.cogs;b.comm+=c.comm;b.del+=c.del;
   R.daily[s.date]=(R.daily[s.date]||0)+c.gross;
-  for(const it of s.items){const r=REC(it.rid);if(!r)continue;const x=R.byRec[it.rid]||(R.byRec[it.rid]={qty:0,rev:0,cm:0,cogs:0});const g=it.qty*it.price*(1-s.disc/100);const cost=it.qty*(it.cost??recCost(r).total);const cm=g-g*S.channels[s.ch].comm/100-cost-S.channels[s.ch].del*it.qty/2.2;x.qty+=it.qty;x.rev+=g;x.cm+=cm;x.cogs+=cost}}
+  for(const it of s.items){const r=REC(it.rid);if(!r)continue;const x=R.byRec[it.rid]||(R.byRec[it.rid]={qty:0,rev:0,cm:0,cogs:0,sc:0});const g=it.qty*it.price*(1-s.disc/100);const cost=it.qty*(it.cost??recCost(r).total);const cm=g-g*S.channels[s.ch].comm/100-cost-S.channels[s.ch].del*it.qty/2.2;x.qty+=it.qty;x.rev+=g;x.cm+=cm;x.cogs+=cost;x.sc+=g*S.channels[s.ch].comm/100+S.channels[s.ch].del*it.qty/2.2}}
  const ex=S.exp.filter(e=>inPeriod(e.date));R.fixed=ex.filter(e=>e.type==='fixed').reduce((a,e)=>a+e.amount,0);R.varx=ex.filter(e=>e.type!=='fixed').reduce((a,e)=>a+e.amount,0);
  R.gp=R.rev-R.cogs;R.cm=R.rev-R.cogs-R.comm-R.del-R.varx;R.net=R.cm-R.fixed;R.cmr=R.rev?R.cm/R.rev:0;R.be=R.cmr>0?R.fixed/R.cmr:NaN;
  R.fcp=R.rev?R.cogs/R.rev*100:0;R.commp=R.rev?R.comm/R.rev*100:0;R.sal=ex.filter(e=>e.cat==='مرتبات').reduce((a,e)=>a+e.amount,0);R.labp=R.rev?R.sal/R.rev*100:0;
  R.ovh=ex.filter(e=>e.ind!==false).reduce((a,e)=>a+e.amount,0);R.ovhp=R.rev?R.ovh/R.rev*100:0;
  const am=S.settings.alloc||'rev';const rs=Object.values(R.byRec);const tot=rs.reduce((a,x)=>a+(am==='units'?x.qty:am==='cost'?x.cogs:x.rev),0);
  for(const x of rs){const b=am==='units'?x.qty:am==='cost'?x.cogs:x.rev;x.ovh=tot?R.ovh*b/tot:0;x.ovhU=x.qty?x.ovh/x.qty:0;x.full=x.cm-x.ovh}
- R.ovhAvg=R.units?R.ovh/R.units:0;
+ R.ovhAvg=R.units?R.ovh/R.units:0;R.scAvg=R.units?(R.comm+R.del)/R.units:0;
  return R}
+const scU=(R,id)=>{const x=R.byRec[id];return x&&x.qty?x.sc/x.qty:R.scAvg};
 const ovhU=(R,id)=>{const x=R.byRec[id];return x&&x.qty?x.ovhU:R.ovhAvg};
 const ALLOC={rev:'حسب حصة المبيعات',units:'حسب عدد الوحدات المباعة',cost:'حسب التكلفة المباشرة'};
 function prodFull(R){const rows=S.rec.map(r=>({r,x:R.byRec[r.id]})).filter(o=>o.x&&o.x.qty);
- return `<div class="tw"><table><tr><th>الصنف</th><th>الكمية</th><th>متوسط السعر</th><th>تكلفة مباشرة/وحدة</th><th>غير مباشرة/وحدة</th><th>التكلفة الكاملة/وحدة</th><th>صافي ربح الصنف</th></tr>
- ${rows.sort((a,b)=>b.x.full-a.x.full).map(({r,x})=>`<tr><td><b>${esc(r.name)}</b></td><td>${N(x.qty)}</td><td>${N(x.rev/x.qty,1)}</td><td>${N(x.cogs/x.qty,1)}</td><td>${N(x.ovhU,1)}</td><td><b>${N(x.cogs/x.qty+x.ovhU,1)}</b></td><td class="${x.full<0?'neg':'pos'}">${M(x.full)}</td></tr>`).join('')}
- <tr><th colspan="4">الإجمالي</th><th>${M(R.ovh)}</th><th></th><th>${M(rows.reduce((a,o)=>a+o.x.full,0))}</th></tr></table></div>
- <div class="note">طريقة التوزيع: ${ALLOC[S.settings.alloc||'rev']} (تُغيَّر من الإعدادات). التوزيع تقرير فقط ولا يغيّر صافي الربح ولا يُحسب مرتين؛ المصروفات المحددة «غير مباشرة» فقط هي التي توزع.</div>`}
+ const tot=rows.reduce((a,o)=>a+o.x.full,0);
+ return `<div class="tw"><table><tr><th>الصنف</th><th>الكمية</th><th>سعر البيع</th><th>① مباشرة<br><small>خامات+تغليف+هالك</small></th><th>② تشغيل موزع<br><small>إيجار، مرتبات، كهرباء…</small></th><th>③ بيع<br><small>عمولة+توصيل</small></th><th>إجمالي التكلفة</th><th>مجمل الربح<br><small>السعر − ①</small></th><th>صافي المساهمة<br><small>بعد ① و③</small></th><th>صافي الربح<br><small>بعد ② أيضًا</small></th><th>إجمالي ربح الصنف</th></tr>
+ ${rows.sort((a,b)=>b.x.full-a.x.full).map(({r,x})=>{const pr=x.rev/x.qty,d=x.cogs/x.qty,s=x.sc/x.qty,o=x.ovhU,tc=d+o+s;return `<tr><td><b>${esc(r.name)}</b></td><td>${N(x.qty)}</td><td>${N(pr,1)}</td><td>${N(d,1)}</td><td>${N(o,1)}</td><td>${N(s,1)}</td><td><b>${N(tc,1)}</b></td><td>${N(pr-d,1)}</td><td class="${pr-d-s<0?'neg':''}">${N(pr-d-s,1)}</td><td class="${pr-tc<0?'neg':'pos'}">${N(pr-tc,1)}</td><td class="${x.full<0?'neg':'pos'}">${M(x.full)}</td></tr>`}).join('')}
+ <tr><th colspan="4">الإجمالي (للفترة)</th><th>${M(R.ovh)}</th><th>${M(R.comm+R.del)}</th><th>${M(R.cogs+R.ovh+R.comm+R.del)}</th><th>${M(R.rev-R.cogs)}</th><th>${M(R.rev-R.cogs-R.comm-R.del)}</th><th></th><th>${M(tot)}</th></tr></table></div>
+ <div class="note">كل المبالغ للوحدة الواحدة ما لم يُذكر غير ذلك. طريقة توزيع ②: ${ALLOC[S.settings.alloc||'rev']} (من الإعدادات). التوزيع تقرير فقط ولا يغيّر صافي الربح ولا يُحسب مرتين.</div>`}
 function alerts(){const A=[];const R=agg();
  for(const i of S.ing)if(i.stock<=i.min)A.push(['c',`مخزون منخفض: ${i.name} (${N(i.stock)} ${UL[i.unit]} ≤ الحد الأدنى ${N(i.min)})`]);
  for(const p of S.plog.slice(-20))if(p.pct>=8&&p.date>=daysAgo(14))A.push(['w',`ارتفع سعر ${esc(p.name)} ${P(p.pct)} (${p.date})`]);
@@ -163,7 +165,7 @@ V.dash=()=>{const R=agg();const H=health();const al=alerts();
  <div class="card"><h3 style="margin-top:0">التنبيهات (${al.length})</h3>${al.length?al.map(a=>`<div class="al ${a[0]}">${a[1]}</div>`).join(''):'<div class="note">لا توجد تنبيهات</div>'}</div>
  <div class="card"><h3 style="margin-top:0">ربحية القنوات</h3><div class="tw"><table><tr><th>القناة</th><th>مبيعات</th><th>تكلفة خامات</th><th>عمولة</th><th>توصيل</th><th>مساهمة</th><th>%</th></tr>
  ${Object.keys(S.channels).map(k=>{const b=R.byCh[k],cm=b.rev-b.cogs-b.comm-b.del;return `<tr><td>${S.channels[k].name}</td><td>${M(b.rev)}</td><td>${M(b.cogs)}</td><td>${M(b.comm)}</td><td>${M(b.del)}</td><td class="${cm<0?'neg':''}">${M(cm)}</td><td>${b.rev?P(cm/b.rev*100):'-'}</td></tr>`}).join('')}</table></div></div>
- <div class="card"><h3 style="margin-top:0">ربحية الأصناف بعد التكلفة المباشرة وغير المباشرة</h3>${prodFull(R)}</div>`};
+ <div class="card"><h3 style="margin-top:0">مستويات تكلفة كل منتج وربحيته</h3>${prodFull(R)}</div>`};
 
 // ---- invoices
 V.inv=()=>{if(!draft)draft={supplier:'مورد A',date:today(),lines:[{ing:S.ing[0].id,qty:1,unit:1000,total:0}],img:null};
@@ -200,7 +202,7 @@ V.stock=()=>`<h2>الخامات والمخزون</h2><p class="sub">الرصيد
 
 // ---- recipes
 V.rec=()=>{const R=agg();return `<h2>الوصفات وتكلفة الجرام</h2><p class="sub">التكلفة تُحسب من آخر تكلفة معتمدة للخامة مع Yield، وتُعرض الخامات والتغليف منفصلين.</p>
- ${S.rec.map(r=>{const c=recCost(r);const o=ovhU(R,r.id);return `<div class="card"><div class="row"><b style="font-size:18px">${esc(r.name)}</b><span class="tag">${esc(r.cat)}</span><span style="margin-inline-start:auto">تكلفة الطعام: <b>${N(c.food,2)}</b> · التغليف: <b>${N(c.pack,2)}</b> · <b>مباشرة ${N(c.total,2)}</b> + غير مباشرة <b>${N(o,2)}</b> = <b class="pos">تكلفة كاملة ${N(c.total+o,2)} ج.م</b></span></div>
+ ${S.rec.map(r=>{const c=recCost(r);const o=ovhU(R,r.id),sc=scU(R,r.id);return `<div class="card"><div class="row"><b style="font-size:18px">${esc(r.name)}</b><span class="tag">${esc(r.cat)}</span><span style="margin-inline-start:auto">تكلفة الطعام: <b>${N(c.food,2)}</b> · التغليف: <b>${N(c.pack,2)}</b> </span></div><div class="row" style="gap:6px"><span class="tag">① مباشرة ${N(c.total,2)}</span>+<span class="tag">② تشغيل ${N(o,2)}</span>+<span class="tag">③ بيع ${N(sc,2)}</span>=<b class="pos">إجمالي ${N(c.total+o+sc,2)} ج.م</b></div>
  <div class="tw"><table><tr><th>المكون</th><th>الكمية</th><th>تكلفة الوحدة الصالحة</th><th>التكلفة</th><th></th></tr>
  ${r.items.map((it,k)=>{const g=ING(it.ing);return `<tr><td>${esc(g.name)}</td><td><input type="number" step="any" data-rq="${r.id}:${k}" value="${it.qty}"> ${UL[g.unit]}</td><td>${N(unitCost(g),3)}</td><td>${N(it.qty*unitCost(g),2)}</td><td><button class="b r sm" data-act="delItem" data-r="${r.id}" data-k="${k}">×</button></td></tr>`}).join('')}</table></div>
  <div class="row" style="margin-top:8px"><select data-addsel="${r.id}">${S.ing.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select><input type="number" placeholder="الكمية" data-addq="${r.id}"><button class="b g sm" data-act="addItem" data-r="${r.id}">+ مكون</button><button class="b r sm" data-act="delRec" data-r="${r.id}" style="margin-inline-start:auto">حذف الوصفة</button></div></div>`}).join('')}
@@ -246,7 +248,7 @@ V.pl=()=>{const R=agg();const r=(a,b,c='')=>`<tr class="${c}"><td>${a}</td><td s
  <div class="k" style="margin-top:8px">لتحقيق ربح 20%</div><b>${R.cmr>.2?M(R.fixed/(R.cmr-.2)):'غير ممكن'}</b>
  <div class="k" style="margin-top:8px">المبيعات اليومية المطلوبة</div><b>${isFinite(R.be)?M(R.be/S.settings.period):'-'}</b>
  <div class="k" style="margin-top:8px">هامش الأمان</div><b class="${R.rev<R.be?'neg':'pos'}">${R.rev&&isFinite(R.be)?P((R.rev-R.be)/R.rev*100):'-'}</b></div></div>
- <div class="card"><h3 style="margin-top:0">توزيع التكاليف غير المباشرة على الأصناف</h3>${prodFull(R)}</div>
+ <div class="card"><h3 style="margin-top:0">مستويات التكلفة الثلاثة لكل منتج</h3>${prodFull(R)}</div>
  <div class="card"><h3 style="margin-top:0">المؤشرات</h3><div class="grid"><div><div class="k">Food Cost</div><b>${P(R.fcp)}</b></div><div><div class="k">Labor Cost</div><b>${P(R.labp)}</b></div><div><div class="k">Prime Cost</div><b>${P(R.fcp+R.labp)}</b></div><div><div class="k">العمولات من المبيعات</div><b>${P(R.commp)}</b></div></div></div>`};
 
 // ---- menu engineering
