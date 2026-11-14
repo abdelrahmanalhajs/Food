@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Haj Ledger | دفتر الحاج</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml"><title>Haj Ledger | دفتر الحاج</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f4f6f3;--card:#fff;--ink:#17231c;--mute:#5d6b62;--line:#e1e6df;--brand:#0f7a4d;--soft:#e6f4ec;--bad:#c92a2a;--warn:#e8890c;--ok:#0f7a4d;--side:#10241a}
@@ -510,7 +510,7 @@ function bnav(){const a=can('dash')?['dash','📊','اللوحة']:['home','🏠
 function nav(){const na=alerts().filter(a=>a[0]!=='i').length,simple=(S.settings.mode||'simple')==='simple',btn=x=>`<button class="${x[0]===tab?'on':''}" data-tab="${x[0]}">${x[1]}${x[0]==='dash'&&na?`<span class="bd">${na}</span>`:''}${x[0]==='plan'&&na&&simple?`<span class="bd">${na}</span>`:''}</button>`;
  rebuildTabs();const pl=TABS.filter(x=>can(x[0]));const list=simple?pl.filter(x=>x[4]).map(btn).join(''):NAV.map((g,gi)=>{const its=pl.filter(x=>x[2]===gi);return its.length?`<div class="grp">${g[0]} ${g[1]}</div>`+its.map(btn).join(''):''}).join('');
  $('#nav').className=simple?'simple':'';
- $('#nav').innerHTML='<h1>📒 Haj Ledger</h1><small>نسخة عمل تجريبية</small><select id="roleSel" title="الدور">'+Object.entries(ROLES).map(([k,r])=>`<option value="${k}"${k===role()?' selected':''}>👤 ${r.n}</option>`).join('')+'</select><select id="brSel" title="الفرع"'+(brLocked()?' disabled':'')+'>'+[['all','كل الفروع']].concat(S.branches.map(b=>[b.id,b.name])).map(o=>`<option value="${o[0]}"${o[0]===(S.settings.br||'all')?' selected':''}>${o[1]}</option>`).join('')+'</select><input id="navq" placeholder="🔍 ابحث عن صفحة…">'+list+`<button class="mode" data-act="toggleMode">${simple?'⚙ عرض كل الصفحات':'✨ العودة للعرض المبسط'}</button>`}
+ $('#nav').innerHTML='<h1><img src="logo.svg" alt="" width="28" height="28" style="vertical-align:middle;border-radius:7px"> Haj Ledger</h1><small>نسخة عمل تجريبية</small><select id="roleSel" title="الدور">'+Object.entries(ROLES).map(([k,r])=>`<option value="${k}"${k===role()?' selected':''}>👤 ${r.n}</option>`).join('')+'</select><select id="brSel" title="الفرع"'+(brLocked()?' disabled':'')+'>'+[['all','كل الفروع']].concat(S.branches.map(b=>[b.id,b.name])).map(o=>`<option value="${o[0]}"${o[0]===(S.settings.br||'all')?' selected':''}>${o[1]}</option>`).join('')+'</select><input id="navq" placeholder="🔍 ابحث عن صفحة…">'+list+`<button class="mode" data-act="toggleMode">${simple?'⚙ عرض كل الصفحات':'✨ العودة للعرض المبسط'}</button>`}
 function go(t){if(!can(t))return toast('الصفحة دي مخفية أو غير متاحة لدورك الحالي');if(t!==tab){hist.push(tab);if(hist.length>20)hist.shift();S.settings.recent=[t,...(S.settings.recent||[]).filter(x=>x!==t)].slice(0,5)}tab=t;document.body.classList.remove('menu');render()}
 let keep=false;
 function render(){applyRoles();if(!can(tab))tab='home';applyLook();nav();bnav();cxReset();rebuildTabs();$('#main').innerHTML=topbar()+(V[tab]?V[tab]():customPage(tab));if(A[tab+'_init'])A[tab+'_init']();if(!keep)window.scrollTo(0,0);keep=false;$('#fab').hidden=!QA.some(q=>can(q[2]));if(focusSel){const el=$(focusSel);if(el){el.focus();try{if(el.setSelectionRange&&/^(text|search|)$/.test(el.type||''))el.setSelectionRange(el.value.length,el.value.length)}catch(e){}}focusSel=null}}
