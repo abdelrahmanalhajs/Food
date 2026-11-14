@@ -50,6 +50,7 @@ aside button.mode{justify-content:center;border:1px dashed #3a5a49;margin:8px 0}
 .sumbar{position:sticky;bottom:8px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--card);border:2px solid var(--brand);border-radius:14px;padding:10px 14px;margin-top:10px;z-index:5;box-shadow:0 4px 14px #0002}.sumbar b{font-size:20px;color:var(--brand)}
 html[dir=ltr] .srch kbd{float:right}html[dir=ltr] #fab{left:auto;right:18px}html[dir=ltr] .toast{text-align:left}
 @media(max-width:800px){html[dir=ltr] aside{right:auto;left:0;transform:translateX(-105%);box-shadow:4px 0 20px #0006}html[dir=ltr] body.menu aside{transform:none}}
+.plrow{display:flex;gap:8px;align-items:center;margin:8px 0}.plrow select{flex:1;min-width:0;font-size:16px;padding:10px 8px}.plrow .qin{width:84px}
 button.b.g.on{background:var(--brand);color:#fff}
 :root[data-theme=light]{--bg:#f4f6f3;--card:#fff;--ink:#17231c;--mute:#5d6b62;--line:#e1e6df;--brand:#0f7a4d;--soft:#e6f4ec;--bad:#c92a2a;--warn:#e8890c;--ok:#0f7a4d;--side:#10241a}
 :root[data-theme=dark]{--bg:#0e1411;--card:#18211c;--ink:#e8efe9;--mute:#9bab9f;--line:#2a372f;--brand:#3ccf8e;--soft:#1b2d24;--bad:#ff6b6b;--warn:#ffb04a;--ok:#3ccf8e;--side:#0a120e}
@@ -760,14 +761,17 @@ V.pos=()=>{const ks=Object.keys(S.channels);const ch=draftCh||'dine';
  return `<h2>المبيعات / الكاشير</h2><p class="sub">كل عملية بيع تخصم الاستهلاك من المخزون بالوصفة وتُسجّل بتكلفتها وقت البيع.</p>
  <div class="card" style="overflow:visible"><div class="row"><label>الفرع<select id="pbr"${(S.settings.br||'all')!=='all'?' disabled':''}>${S.branches.map(b=>`<option value="${b.id}"${b.id===posBr()?' selected':''}>${esc(b.name)}</option>`).join('')}</select></label><label>القناة<select id="pch">${ks.map(k=>`<option value="${k}"${k===ch?' selected':''}>${S.channels[k].name}</option>`).join('')}</select></label><label>خصم %<input type="number" id="pdisc" value="0"></label></div>
  <div class="row" style="margin-top:10px"><label style="flex:1;min-width:240px">⚡ اكتب بسرعة<input id="qt" placeholder="مثال: 10 مكرونة، 2 برجر، 3 بطاطس" style="width:100%;font-size:17px"></label><button class="b" data-act="quickAdd">أضف للقائمة</button></div>
- ${qmsg?`<div class="al ${qmsg[0]}">${qmsg[1]}</div>`:'<div class="note">اكتب الكمية ثم اسم الصنف وافصل بفاصلة (Enter للإضافة) — أو اكتب الكميات مباشرة في القائمة تحت.</div>'}
- <div class="row" style="margin-top:8px"><label style="flex:1;min-width:200px">🔎 فلتر الأصناف<input id="pf" placeholder="ابحث في الأصناف…" style="width:100%"></label></div>
- <div id="plist">${MENU().map(r=>{const q=qOf(r.id);return `<div class="prow" data-n="${esc(r.name+' '+r.cat+' '+(r.alias||ALIAS[r.id]||''))}"><div style="flex:1"><b>${esc(r.name)}</b><div class="note">${esc(r.cat)} · ${N(r.prices[ch])} ج.م</div></div><button class="b g sm" data-act="qtyDn" data-r="${r.id}">−</button><input type="number" min="0" class="qin" data-cq="${r.id}" value="${q||''}" placeholder="0"><button class="b sm" data-act="qtyUp" data-r="${r.id}">+</button><span id="st_${r.id}" style="width:90px;text-align:end;font-weight:700">${q?M(q*r.prices[ch]):''}</span></div>`}).join('')}</div>
+ ${qmsg?`<div class="al ${qmsg[0]}">${qmsg[1]}</div>`:'<div class="note">اكتب الكمية ثم اسم الصنف وافصل بفاصلة (Enter للإضافة) — أو اختر الصنف من القائمة المنسدلة تحت.</div>'}
+ <div class="note" style="margin:10px 0 4px">اختر الصنف من القائمة المنسدلة واكتب العدد، وأضف أصنافًا أخرى بزر «+».</div>
+ <div id="plist">${posLines.map((l,i)=>`<div class="plrow"><select data-pls="${i}"><option value="">— اختر الصنف —</option>${posOpts(ch).replace('value="'+l.rid+'"','value="'+l.rid+'" selected')}</select><input type="number" min="0" class="qin" data-plq="${i}" value="${l.qty||''}" placeholder="العدد"><button class="b r sm" data-act="plDel" data-i="${i}">×</button></div>`).join('')}</div>
+ <div class="row"><button class="b g sm" data-act="plAdd">+ إضافة صنف آخر</button></div>
  <div class="sumbar"><span>الإجمالي: <b id="ctot">${M(tot)}</b> · <span id="ccnt">${cart.reduce((a,c)=>a+c.qty,0)}</span> وحدة</span><span><button class="b g sm" data-act="cartClear">مسح</button> <button class="b" data-act="sell">✅ تسجيل البيع</button></span></div></div>
  <div class="card"><h3 style="margin-top:0">تسجيل طلب ملغى</h3><div class="row"><label>عدد الطلبات<input type="number" id="cx_n" value="1"></label><label>قيمتها التقريبية<input type="number" id="cx_v" value="0"></label><button class="b r" data-act="cancelOrder">تسجيل الإلغاء</button></div><div class="note">يُسجَّل على الفرع والقناة المختارين أعلاه ويظهر في اللوحة.</div></div>
  <div class="card"><h3 style="margin-top:0">📅 إضافة مبيعات يوم كاملة (بالإجمالي)</h3>${dailyForm()}</div>
  <div class="card"><h3 style="margin-top:0">آخر المبيعات المسجلة</h3><table>${recent.map(s=>`<tr><td>${s.date}</td><td>${S.channels[s.ch].name}</td><td>${s.canc&&!s.items.length?'طلب ملغى ×'+s.canc:s.items.map(i=>esc(REC(i.rid)?.name)+'×'+i.qty).join('، ')}</td><td>${M(saleCalc(s).gross)}${s.daily?' <span class="tag">إجمالي يومي</span>':''}</td><td><button class="b r sm" data-act="delSale" data-id="${s.id}">×</button></td></tr>`).join('')||'<tr><td class="note">لم تُسجل مبيعات يدوية بعد</td></tr>'}</table></div>`};
-let draftCh='dine',draftBr='',qmsg=null;
+let draftCh='dine',draftBr='',qmsg=null,posLines=[{rid:'',qty:''}];
+function syncCart(){const m={};posLines.forEach(l=>{if(l.rid&&l.qty>0)m[l.rid]=(m[l.rid]||0)+(+l.qty)});cart=Object.entries(m).map(([rid,qty])=>({rid,qty}));refreshCart()}
+const posOpts=ch=>{const menu=MENU(),cats=[...new Set(menu.map(r=>r.cat))];return cats.map(c=>`<optgroup label="${esc(c)}">${menu.filter(r=>r.cat===c).map(r=>`<option value="${r.id}">${esc(r.name)} — ${N(r.prices[ch])} ج.م</option>`).join('')}</optgroup>`).join('')};
 const ALIAS={r1:'مكرونة باستا الفريدو ألفريدو تشيكن',r2:'مكرونة باستا بيستو تشيكن',r3:'بيتزا بيتزه مارجريتا',r4:'برجر همبرجر لحم',r5:'بطاطس فرايز'};
 function refreshCart(){const ch=draftCh||'dine';const e=$('#ctot');if(e)e.textContent=M(cart.reduce((a,c)=>a+c.qty*REC(c.rid).prices[ch],0));const n=$('#ccnt');if(n)n.textContent=cart.reduce((a,c)=>a+c.qty,0)}
 function setQ(rid,q){q=Math.max(0,Math.floor(+q||0));const i=cart.findIndex(c=>c.rid===rid);if(i>=0){if(q)cart[i].qty=q;else cart.splice(i,1)}else if(q)cart.push({rid,qty:q});
@@ -947,10 +951,10 @@ document.addEventListener('click',e=>{
  else if(a==='applySug'){if(!d.v)return;REC(d.r).prices[d.k]=+d.v;save();render()}
  else if(a==='cartAdd'){const c=cart.find(x=>x.rid===d.r);c?c.qty++:cart.push({rid:d.r,qty:1});render()}
  else if(a==='cartDel'){cart.splice(+d.i,1);render()}
- else if(a==='sell'){if(!cart.length)return;const ch=$('#pch').value,disc=+$('#qt').value||0;
+ else if(a==='sell'){if(!cart.length)return;const ch=$('#pch').value,disc=+$('#pdisc').value||0;
    const items=cart.map(c=>({rid:c.rid,qty:c.qty,price:REC(c.rid).prices[ch],cost:recCost(REC(c.rid)).total}));
    for(const c of cart)for(const it of flatItems(REC(c.rid))){const g=ING(it.ing);stockMove(g.id,$('#pbr').value,-c.qty*it.qty/(g.yield/100))}
-   S.sales.push({id:uid(),date:today(),ch,items,disc,orders:1,br:$('#pbr').value});if(ch!=='app')S.cash.cash+=saleCalc(S.sales[S.sales.length-1]).gross;cart=[];qmsg=null;save();render()}
+   S.sales.push({id:uid(),date:today(),ch,items,disc,orders:1,br:$('#pbr').value});if(ch!=='app')S.cash.cash+=saleCalc(S.sales[S.sales.length-1]).gross;cart=[];posLines=[{rid:'',qty:''}];qmsg=null;save();render()}
  else if(a==='addExp'){const ecv=$('#ec').value;if(ecv==='__sal'||ecv==='__adv'){const am=+$('#ea').value,src=$('#ep').value,eid=$('#eemp').value;if(!am)return toast('أدخل المبلغ');if(ecv==='__adv'&&eid==='__all')return toast('اختر موظفًا محددًا للسلفة');S.pays=S.pays||[];S.pays.push({id:uid(),date:$('#ed').value,emp:eid,type:ecv==='__sal'?'salary':'advance',amount:am,src,note:$('#en').value});if(ecv==='__adv'){const e=S.emp.find(x=>x.id===eid);if(e)e.adv+=am}if(src!=='none')S.cash[src]-=am;toast(ecv==='__sal'?'تم تسجيل صرف الراتب':'تم تسجيل السلفة وإضافتها على الموظف');save();render();return}const am=+$('#ea').value;if(!am)return;S.exp.push({id:uid(),date:$('#ed').value,cat:$('#ec').value,type:$('#et').value,amount:am,note:$('#en').value,ind:$('#ei').checked,br:$('#eb').value});{const src=$('#ep').value;if(src!=='none')S.cash[src]-=am}save();render()}
  else if(a==='delExp'){S.exp=S.exp.filter(x=>x.id!==d.id);save();render()}
  else if(a==='ask'){chat=(chat[0]&&chat[0].q===d.q)?[]:[{q:d.q,a:answer(d.q)}];render()}
@@ -962,8 +966,10 @@ document.addEventListener('click',e=>{
  else if(a==='delPay'){const x=(S.pays||[]).find(y=>y.id===d.id);if(!x)return;if(x.type==='advance'){const e=S.emp.find(z=>z.id===x.emp);if(e)e.adv=Math.max(0,e.adv-x.amount)}if(x.src!=='none')S.cash[x.src]+=x.amount;S.pays=S.pays.filter(y=>y.id!==d.id);save();render()}
  else if(a==='qtyUp'){setQ(d.r,qOf(d.r)+1)}
  else if(a==='qtyDn'){setQ(d.r,qOf(d.r)-1)}
- else if(a==='cartClear'){cart=[];qmsg=null;keep=true;render()}
- else if(a==='quickAdd'){const tx=$('#qt').value,R0=parseQuick(tx);if(!R0.out.length&&!R0.bad.length)return;R0.out.forEach(o=>{const cur=qOf(o.r.id);cart=cart.filter(c=>c.rid!==o.r.id);cart.push({rid:o.r.id,qty:cur+o.q})});
+ else if(a==='cartClear'){cart=[];posLines=[{rid:'',qty:''}];qmsg=null;keep=true;render()}
+ else if(a==='plAdd'){posLines.push({rid:'',qty:''});keep=true;focusSel=`[data-pls="${posLines.length-1}"]`;render()}
+ else if(a==='plDel'){posLines.splice(+d.i,1);if(!posLines.length)posLines=[{rid:'',qty:''}];syncCart();keep=true;render()}
+ else if(a==='quickAdd'){const tx=$('#qt').value,R0=parseQuick(tx);if(!R0.out.length&&!R0.bad.length)return;R0.out.forEach(o=>{const ex=posLines.find(l=>l.rid===o.r.id);if(ex)ex.qty=(+ex.qty||0)+o.q;else{const bl=posLines.find(l=>!l.rid&&!l.qty);if(bl){bl.rid=o.r.id;bl.qty=o.q}else posLines.push({rid:o.r.id,qty:o.q})}});syncCart();
   qmsg=[R0.bad.length?'w':'i','فُهمت: '+R0.out.map(o=>`<b>${N(o.q)} × ${esc(o.r.name)}</b>${o.alts.length?' (فيه كمان: '+o.alts.map(x=>esc(x.name)).join('، ')+')':''}`).join('، ')+(R0.bad.length?' — ⚠ لم أفهم: '+R0.bad.map(esc).join('، ')+' (اكتب اسم الصنف كما في القائمة)':'')];keep=true;render();const q=$('#qt');if(q)q.focus()}
  else if(a==='menu'){document.body.classList.toggle('menu')}
  else if(a==='back'){tab=hist.pop()||'dash';render()}
@@ -1022,6 +1028,7 @@ document.addEventListener('click',e=>{
  else if(a==='reset'){if(confirm('سيتم مسح بياناتك وإعادة بيانات المطعم التجريبي. متابعة؟')){S=seed();save();draft=null;cart=[];chat=[];render()}}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.pls!==undefined){posLines[+t.dataset.pls].rid=t.value;syncCart();return}
  if(t.dataset.dls!==undefined){dlLines[+t.dataset.dls].rid=t.value;dlPrevUpd();return}
  if(t.id==='dl_c'||t.id==='dl_b'){dlS[t.id]=t.value;if(t.id==='dl_c')refreshDaily();return}
  if(t.id==='dl_d'){dlS.dl_d=t.value;return}
@@ -1050,6 +1057,7 @@ document.addEventListener('change',e=>{const t=e.target;
  if(t.dataset.ey){ING(t.dataset.ey).yield=Math.max(1,Math.min(100,+t.value||100));save();render()}
 });
 document.addEventListener('input',e=>{const t=e.target,k=t.dataset.d;
+ if(t.dataset.plq!==undefined){posLines[+t.dataset.plq].qty=+t.value||0;syncCart();return}
  if(t.dataset.dlq!==undefined){dlLines[+t.dataset.dlq].qty=+t.value||0;dlPrevUpd();return}
  if(t.id&&t.id.startsWith('dl_')&&t.id!=='dl_prev'){dlS[t.id]=t.value;return}
  if(t.id==='pf'){const q=nrm(t.value);document.querySelectorAll('#plist .prow').forEach(r=>r.style.display=!q||nrm(r.dataset.n).includes(q)?'':'none');return}
