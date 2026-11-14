@@ -9,16 +9,16 @@
 :root{--bg:#f4f6f3;--card:#fff;--ink:#17231c;--mute:#5d6b62;--line:#e1e6df;--brand:#0f7a4d;--soft:#e6f4ec;--bad:#c92a2a;--warn:#e8890c;--ok:#0f7a4d;--side:#10241a}
 @media(prefers-color-scheme:dark){:root{--bg:#0e1411;--card:#18211c;--ink:#e8efe9;--mute:#9bab9f;--line:#2a372f;--brand:#3ccf8e;--soft:#1b2d24;--bad:#ff6b6b;--warn:#ffb04a;--ok:#3ccf8e;--side:#0a120e}}
 *{box-sizing:border-box}body{margin:0;font-family:Cairo,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
-.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
 aside{background:var(--side);color:#dfeee5;padding:14px 10px;position:sticky;top:0;height:100vh;overflow:auto}
 aside h1{font-size:18px;margin:4px 8px 2px;color:#3ccf8e}aside small{display:block;margin:0 8px 12px;color:#8fa699}
 aside button{display:flex;width:100%;gap:8px;align-items:center;background:none;border:0;color:inherit;font:inherit;padding:9px 12px;border-radius:10px;cursor:pointer;text-align:start}
 aside button:hover{background:#1c3a2b}aside button.on{background:#0f7a4d;color:#fff}
 aside .bd{margin-inline-start:auto;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;padding:0 7px}
-main{padding:20px;max-width:1150px;width:100%}
+main{padding:20px;max-width:1150px;width:100%;min-width:0}
 h2{margin:0 0 4px;font-size:24px}.sub{color:var(--mute);margin:0 0 16px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;overflow-x:auto}
 .grid .card{margin:0}
 .k{font-size:13px;color:var(--mute)}.v{font-size:24px;font-weight:800}.v.s{font-size:18px}
 .pos{color:var(--ok)}.neg{color:var(--bad)}.wr{color:var(--warn)}
@@ -35,14 +35,21 @@ button.b.g{background:transparent;color:var(--brand);border:1.5px solid var(--br
 .score{width:130px;height:130px;border-radius:50%;display:grid;place-items:center;font-size:36px;font-weight:800;margin:auto}
 .chat{background:var(--soft);padding:10px 14px;border-radius:12px;margin:8px 0}.chat.u{background:var(--brand);color:#fff;margin-inline-start:30%}
 .note{font-size:12px;color:var(--mute)}
-@media(max-width:800px){.app{grid-template-columns:1fr}aside{position:static;height:auto;display:flex;overflow-x:auto;white-space:nowrap}aside h1,aside small{display:none}aside button{width:auto}}
+
+.click{cursor:pointer}.click:hover{border-color:var(--brand);box-shadow:0 2px 10px #0002}
+.mdl{position:fixed;inset:0;background:#0009;z-index:50;display:flex;align-items:center;justify-content:center;padding:14px}.mdl[hidden]{display:none}
+.mbox{background:var(--card);color:var(--ink);border-radius:14px;max-width:920px;width:100%;max-height:88vh;overflow:auto;padding:16px}
+.seg{transition:stroke-dasharray 1.2s ease}.donut{animation:spin 1.2s ease}@keyframes spin{from{transform:rotate(-140deg);opacity:0}to{transform:rotate(0);opacity:1}}
+button.b.g.on{background:var(--brand);color:#fff}
+@media(max-width:800px){.app{grid-template-columns:minmax(0,1fr)}.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important}main{padding:12px}aside{position:static;height:auto;display:flex;overflow-x:auto;white-space:nowrap}aside h1,aside small{display:none}aside button{width:auto}}
 </style></head>
 <body><div class="app">
 <aside id="nav"></aside>
 <main id="main"></main>
 </div>
+<div id="modal" class="mdl" hidden><div class="mbox"><button class="b g sm" data-act="closeModal">✕ إغلاق</button><div id="mbody"></div></div></div>
 <script>
-const KEY='foodpilot_app_v3';
+const KEY='foodpilot_app_v4';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const N=(x,d=0)=>(+x||0).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
@@ -52,6 +59,8 @@ const iso=d=>d.toISOString().slice(0,10);
 const today=()=>iso(new Date());
 const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
 const uid=()=>Math.random().toString(36).slice(2,9);
+const addDays=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return iso(d)};
+const daysAhead=n=>addDays(today(),n);
 const UNITS={g:[['كجم',1000],['جم',1]],ml:[['لتر',1000],['مل',1]],pc:[['قطعة',1],['كرتونة (12)',12]]};
 const UL={g:'جم',ml:'مل',pc:'قطعة'};
 
@@ -80,18 +89,29 @@ function seed(){
  const sales=[];
  for(let d=29;d>=0;d--){for(const [bid,,bm] of brs){for(const c of Object.keys(ch)){const items=[];
    for(const r of rec){const q=Math.round(w[r.id]*ch[c]*31*bm*(0.6+rnd()*0.8));if(q>0)items.push({rid:r.id,qty:q,price:r.prices[c]})}
-   const un=items.reduce((a,i)=>a+i.qty,0),od=Math.round(un/2.2),cc=Math.round(od*(0.02+rnd()*0.03)),av=un?items.reduce((a,i)=>a+i.qty*i.price,0)/un*2.2:0;sales.push({id:uid(),date:daysAgo(d),ch:c,items,disc:c==='app'?5:0,seeded:true,br:bid,canc:cc,cancVal:Math.round(cc*av)})}}}
+   const un=items.reduce((a,i)=>a+i.qty,0),od=Math.round(un/2.2),cc=Math.round(od*(0.02+rnd()*0.03)),av=un?items.reduce((a,i)=>a+i.qty*i.price,0)/un*2.2:0;sales.push({id:uid(),date:daysAgo(d),ch:c,items,disc:c==='app'?5:(rnd()<.07?15:0),seeded:true,br:bid,canc:cc,cancVal:Math.round(cc*av)})}}}
  const exp=[['إيجار','fixed',40000,25,'b1'],['إيجار','fixed',30000,25,'b2'],['إيجار','fixed',22000,25,'b3'],['كهرباء ومياه وغاز','fixed',9000,20,'b1'],['كهرباء ومياه وغاز','fixed',6500,20,'b2'],['كهرباء ومياه وغاز','fixed',4500,20,'b3'],['صيانة','variable',2500,10,'b1'],['صيانة','variable',1500,10,'b2'],['تسويق وإعلانات','variable',15000,15,''],['مصاريف إدارية','fixed',8000,25,'']]
   .map(e=>({id:uid(),cat:e[0],type:e[1],amount:e[2],date:daysAgo(e[3]),note:'',br:e[4]}));
  const emp=[['أحمد سالم','مدير فرع','b1',18000],['محمود علي','شيف','b1',15000],['كريم حسن','طباخ','b1',9000],['يوسف عادل','طباخ','b1',9000],['سارة محمد','كاشير','b1',7000],['هشام فتحي','مدير فرع','b2',15000],['ياسر نبيل','شيف','b2',12000],['عمر خالد','طباخ','b2',8000],['منى سعيد','كاشير','b2',6500],['طارق جمال','مدير فرع','b3',12000],['إسلام رشاد','طباخ','b3',8000],['هدى عاطف','كاشير','b3',6000],['المدير العام','إدارة','',20000]]
   .map((e,i)=>({id:'e'+i,name:e[0],role:e[1],br:e[2],base:e[3],allow:Math.round(e[3]*.1),inc:0,otH:0,abs:0,adv:0}));
- return {branches:brs.map(b=>({id:b[0],name:b[1]})),emp,ing,rec,sales,exp,inv:[],counts:[],plog:[],
+ const use={};for(const s of sales)for(const it of s.items){const r=rec.find(x=>x.id===it.rid);for(const ri of r.items)use[ri.ing]=(use[ri.ing]||0)+it.qty*ri.qty}
+ const cover={chicken:9,pasta:12,cream:8,mozz:2.5,butter:14,spice:30,box:10,patty:11,bun:9,cheddar:12,lettuce:6,tomato:7,dough:10,sauce:12,fries:9};
+ ing.forEach(g=>{const dq=(use[g.id]||0)*100/g.yield/30;g.stock=Math.round(dq*(cover[g.id]||10));g.min=Math.round(dq*4)});
+ const sup=[{name:'مورد A',rating:4.5,terms:15},{name:'مورد B',rating:4,terms:7},{name:'مورد C',rating:3.5,terms:0}];
+ const quotes={};for(const g of ing){quotes[g.id]=sup.map(s=>{const pr=g.supplier===s.name?g.cost:g.cost*(0.9+rnd()*0.25);return {sup:s.name,price:+pr.toFixed(4),prev:+(pr*(0.94+rnd()*0.12)).toFixed(4)}})}
+ const inv=[['مورد A',5,[['chicken',30000,3600],['cream',10000,800]]],['مورد B',10,[['mozz',20000,6000],['pasta',40000,1200]]],['مورد C',2,[['tomato',30000,900],['spice',5000,1000]]],['مورد A',3,[['patty',40000,10000]]]]
+  .map(v=>{const tm=sup.find(s=>s.name===v[0]).terms,dt=daysAgo(v[1]);return {id:uid(),supplier:v[0],date:dt,lines:v[2].map(l=>({ing:l[0],qty:l[1],unit:1,total:l[2]})),status:'approved',paid:false,dueDate:addDays(dt,tm),dup:false}});
+ const waste=[['b1',22,'chicken',1800,'تجهيز زائد'],['b1',12,'lettuce',2500,'انتهاء صلاحية'],['b1',5,'mozz',700,'سقوط'],['b2',18,'patty',3000,'خطأ تحضير'],['b2',9,'tomato',3000,'تلف'],['b3',20,'chicken',4000,'تلف تخزين'],['b3',14,'mozz',2500,'انتهاء صلاحية'],['b3',6,'cream',3000,'انتهاء صلاحية'],['b3',3,'patty',2000,'خطأ تحضير']]
+  .map(w=>({id:uid(),date:daysAgo(w[1]),br:w[0],ing:w[2],qty:w[3],reason:w[4]}));
+ return {branches:brs.map(b=>({id:b[0],name:b[1]})),emp,ing,rec,sales,exp,inv,counts:[],plog:[],sup,quotes,waste,
+  cash:{cash:85000,bank:240000},draw:[{id:uid(),date:daysAgo(20),amount:20000,src:'cash',note:'مسحوبات المالك'},{id:uid(),date:daysAgo(8),amount:15000,src:'bank',note:'مسحوبات شخصية'}],
+  outside:[{id:uid(),name:'تأمين إيجار فرع التجمع',amount:30000},{id:uid(),name:'سلفة لدى مورد',amount:5000}],
   channels:{dine:{name:'داخل المطعم',comm:0,del:0},direct:{name:'طلب مباشر',comm:0,del:12},app:{name:'تطبيق توصيل',comm:30,del:0}},
-  target:30,settings:{period:30,br:'all',ins:0,fcLimit:33,minMargin:15}};
+  target:30,settings:{period:30,br:'all',ins:0,fcLimit:33,minMargin:15,settleDays:7,payDay:28,rentDay:1,hours:12,commOk:25,discMax:5,capacity:15,workDays:26,shiftHours:8,lead:2,targetSales:900000,targetNet:120000}};
 }
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-if(!S||!S.ing||!S.branches)S=seed();
+if(!S||!S.ing||!S.branches||!S.cash)S=seed();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const ING=id=>S.ing.find(i=>i.id===id);
 const REC=id=>S.rec.find(r=>r.id===id);
@@ -111,15 +131,15 @@ function saleCalc(s){let gross=0,cogs=0,units=0;for(const it of s.items){const r
  const ch=S.channels[s.ch];const comm=gross*ch.comm/100;const del=ch.del*(s.orders||units/2.2);
  return {gross,cogs,comm,del,units}}
 function agg(br=S.settings.br||'all'){const sales=S.sales.filter(s=>inPeriod(s.date)&&(br==='all'||s.br===br));let R={rev:0,cogs:0,comm:0,del:0,units:0,orders:0,canc:0,cancVal:0,ingUse:{},byCh:{},byRec:{},daily:{}};
- for(const k in S.channels)R.byCh[k]={rev:0,cogs:0,comm:0,del:0};
+ R.ingQty={};for(const k in S.channels)R.byCh[k]={rev:0,cogs:0,comm:0,del:0,ord:0};
  for(const s of sales){const c=saleCalc(s);const ord=s.orders!==undefined?s.orders:Math.round(c.units/2.2);R.orders+=ord;R.canc+=s.canc||0;R.cancVal+=s.cancVal||0;const dper=s.orders?S.channels[s.ch].del*s.orders/c.units:S.channels[s.ch].del/2.2;R.rev+=c.gross;R.cogs+=c.cogs;R.comm+=c.comm;R.del+=c.del;R.units+=c.units;
-  const b=R.byCh[s.ch];b.rev+=c.gross;b.cogs+=c.cogs;b.comm+=c.comm;b.del+=c.del;
+  const b=R.byCh[s.ch];b.ord+=ord;b.rev+=c.gross;b.cogs+=c.cogs;b.comm+=c.comm;b.del+=c.del;
   R.daily[s.date]=(R.daily[s.date]||0)+c.gross;
-  for(const it of s.items){const r=REC(it.rid);if(!r)continue;for(const ri of r.items){const g=ING(ri.ing);if(g)R.ingUse[g.id]=(R.ingUse[g.id]||0)+it.qty*ri.qty*unitCost(g)}const x=R.byRec[it.rid]||(R.byRec[it.rid]={qty:0,rev:0,cm:0,cogs:0,sc:0,time:0});const g=it.qty*it.price*(1-s.disc/100);const cost=it.qty*(it.cost??recCost(r).total);const cm=g-g*S.channels[s.ch].comm/100-cost-dper*it.qty;x.qty+=it.qty;x.rev+=g;x.cm+=cm;x.cogs+=cost;x.time+=it.qty*(r.prep??5);x.sc+=g*S.channels[s.ch].comm/100+dper*it.qty}}
+  for(const it of s.items){const r=REC(it.rid);if(!r)continue;for(const ri of r.items){const g=ING(ri.ing);if(g){R.ingUse[g.id]=(R.ingUse[g.id]||0)+it.qty*ri.qty*unitCost(g);R.ingQty[g.id]=(R.ingQty[g.id]||0)+it.qty*ri.qty/(g.yield/100)}}const x=R.byRec[it.rid]||(R.byRec[it.rid]={qty:0,rev:0,cm:0,cogs:0,sc:0,time:0});const g=it.qty*it.price*(1-s.disc/100);const cost=it.qty*(it.cost??recCost(r).total);const cm=g-g*S.channels[s.ch].comm/100-cost-dper*it.qty;x.qty+=it.qty;x.rev+=g;x.cm+=cm;x.cogs+=cost;x.time+=it.qty*(r.prep??5);x.sc+=g*S.channels[s.ch].comm/100+dper*it.qty}}
  const totRev=br==='all'?R.rev:S.sales.filter(s=>inPeriod(s.date)).reduce((a,s)=>a+saleCalc(s).gross,0);const share=br==='all'?1:(totRev?R.rev/totRev:0);R.share=share;
  const ex=allEx().filter(e=>br==='all'||e.br===br||!e.br).map(e=>(br!=='all'&&!e.br)?{...e,amount:e.amount*share}:e);
  R.byCat={};ex.forEach(e=>R.byCat[e.cat]=(R.byCat[e.cat]||0)+e.amount);R.fixed=ex.filter(e=>e.type==='fixed').reduce((a,e)=>a+e.amount,0);R.varx=ex.filter(e=>e.type!=='fixed').reduce((a,e)=>a+e.amount,0);
- R.gp=R.rev-R.cogs;R.cm=R.rev-R.cogs-R.comm-R.del-R.varx;R.shrink=S.counts.filter(c=>inPeriod(c.date)&&c.val<0).reduce((a,c)=>a-c.val,0)*share;R.net=R.cm-R.fixed-R.shrink;R.cmr=R.rev?R.cm/R.rev:0;R.be=R.cmr>0?(R.fixed+R.shrink)/R.cmr:NaN;
+ R.gp=R.rev-R.cogs;R.cm=R.rev-R.cogs-R.comm-R.del-R.varx;R.shrinkCnt=S.counts.filter(c=>inPeriod(c.date)&&c.val<0).reduce((a,c)=>a-c.val,0)*share;R.waste=S.waste.filter(w=>inPeriod(w.date)&&(br==='all'||w.br===br)).reduce((a,w)=>a+w.qty*(ING(w.ing)?.cost||0),0);R.shrink=R.shrinkCnt+R.waste;R.net=R.cm-R.fixed-R.shrink;R.cmr=R.rev?R.cm/R.rev:0;R.be=R.cmr>0?(R.fixed+R.shrink)/R.cmr:NaN;
  R.avgTicket=R.orders?R.rev/R.orders:0;R.fcp=R.rev?R.cogs/R.rev*100:0;R.commp=R.rev?R.comm/R.rev*100:0;R.sal=ex.filter(e=>e.cat==='مرتبات').reduce((a,e)=>a+e.amount,0);R.labp=R.rev?R.sal/R.rev*100:0;
  R.ovh=ex.filter(e=>e.ind!==false).reduce((a,e)=>a+e.amount,0);R.ovhp=R.rev?R.ovh/R.rev*100:0;
   const pools={};ex.filter(e=>e.ind!==false).forEach(e=>pools[e.cat]=(pools[e.cat]||0)+e.amount);R.pools=pools;R.unalloc=ex.filter(e=>e.ind===false).reduce((a,e)=>a+e.amount,0);
@@ -147,6 +167,70 @@ function prodFull(R){const rows=S.rec.map(r=>({r,x:R.byRec[r.id]})).filter(o=>o.
  <tr><td colspan="10">− فروق جرد وهالك فعلي (مستوى المطعم)</td><td class="neg">${M(-R.shrink)}</td></tr>
  <tr><th colspan="10">= صافي ربح المطعم كله</th><th class="${R.net<0?'neg':'pos'}">${M(R.net)}</th></tr></table></div>
  <div class="note">① مباشرة بدقة: آخر تكلفة معتمدة × Yield وتُثبَّت وقت البيع. ② تُوزع بمحرك تكلفة لكل بند (من الإعدادات). التوزيع تقرير فقط، والربح النهائي يُحسب على مستوى المطعم كله ولا تُحسب المصروفات مرتين.</div>`}
+const invTotal=v=>v.lines.reduce((a,l)=>a+l.total,0);
+const clamp=(x,a=0,b=100)=>Math.max(a,Math.min(b,x));
+const K=()=>30/S.settings.period;
+const fq=(q,u)=>u==='g'?(q>=1000?N(q/1000,1)+' كجم':N(q)+' جم'):u==='ml'?(q>=1000?N(q/1000,1)+' لتر':N(q)+' مل'):N(q)+' قطعة';
+const supTerms=n=>(S.sup.find(s=>s.name===n)||{terms:0}).terms;
+function salesIn(d1,d2,br=S.settings.br||'all'){return S.sales.filter(s=>s.date>=d1&&s.date<=d2&&(br==='all'||s.br===br))}
+function winAgg(d1,d2,br=S.settings.br||'all'){const o={rev:0,cogs:0,comm:0,del:0,orders:0,units:0,canc:0};for(const s of salesIn(d1,d2,br)){const c=saleCalc(s);o.rev+=c.gross;o.cogs+=c.cogs;o.comm+=c.comm;o.del+=c.del;o.units+=c.units;o.orders+=s.orders!==undefined?s.orders:Math.round(c.units/2.2);o.canc+=s.canc||0}return o}
+function useWin(d1,d2){const q={};let rev=0;for(const s of S.sales){if(s.date<d1||s.date>d2)continue;rev+=saleCalc(s).gross;for(const it of s.items){const r=REC(it.rid);if(!r)continue;for(const ri of r.items){const g=ING(ri.ing);if(g)q[g.id]=(q[g.id]||0)+it.qty*ri.qty/(g.yield/100)}}}return {q,rev}}
+function msForecast(R){const br=S.settings.br||'all';const t=today(),y=+t.slice(0,4),m=+t.slice(5,7),day=+t.slice(8,10),dim=new Date(y,m,0).getDate(),ms=t.slice(0,8)+'01';
+ const w=winAgg(ms,t,br);const avg7=win(7,br).rev/7;const left=dim-day;const proj=w.rev+avg7*left;const B=beInfo(R);const net=proj*R.cmr-B.fx;const sh=R.share??1;
+ return {day,dim,left,mtd:w.rev,proj,costs:proj-net,net,tgS:S.settings.targetSales*sh,tgN:S.settings.targetNet*sh,B}}
+function dailyTarget(R,F){const B=F.B;const need=B.cmr>0?(B.fx+F.tgN)/B.cmr:NaN;const rem=Math.max(0,need-F.mtd);const req=F.left>0?rem/F.left:B.day;const w7=win(7);const ordDay=w7.ord/7,tk=w7.ord?w7.rev/w7.ord:0;
+ return {need,req,be:B.day,orders:tk?req/tk:NaN,ticket:ordDay?req/ordDay:NaN,hour:req/(S.settings.hours||12),ordDay,tk}}
+function leakage(R){const k=K(),br=S.settings.br||'all',dm=S.settings.discMax??5,co=S.settings.commOk??25;
+ let disc=0;for(const s of S.sales){if(!inPeriod(s.date)||(br!=='all'&&s.br!==br))continue;if(s.disc>dm)disc+=s.items.reduce((a,i)=>a+i.qty*i.price,0)*(s.disc-dm)/100}
+ const app=R.byCh.app||{rev:0,comm:0};const ex=Math.max(0,app.comm-app.rev*co/100);
+ let up=0;for(const p of S.plog)if(inPeriod(p.date))up+=Math.max(0,p.new-p.old)*(R.ingQty[p.ing]||0);
+ let neg=0;for(const x of Object.values(R.byRec))if(x.cm<0)neg+=-x.cm;
+ const items=[['هالك خامات مسجل',R.waste,'سجّل الهالك من صفحة الخامات لتحديد أسبابه'],['فروق جرد (عجز فعلي)',R.shrinkCnt,'حقّق في العجز: صرف غير مسجل أم خطأ وصفة؟'],['عمولات التطبيقات فوق المعدل المقبول ('+co+'%)',ex,'تفاوض على النسبة أو حوّل جزءًا من الطلبات للقناة المباشرة'],['خصومات فوق سياسة '+dm+'%',disc,'اعتمد الخصومات الكبيرة بصلاحية مدير'],['ارتفاع أسعار الموردين',up,'قارن الموردين من صفحة الموردين'],['أصناف تباع بخسارة',neg,'عدّل أسعارها أو وصفاتها'],['مساهمة الطلبات الملغاة',R.cancVal*R.cmr,'راجع أسباب الإلغاء']].map(x=>({n:x[0],v:x[1]*k,t:x[2]}));
+ return {items,total:items.reduce((a,x)=>a+x.v,0)}}
+function cashPos(){const sd=S.settings.settleDays||7,R=agg('all'),k=K();
+ let rec=0;const recRows=[];for(const s of S.sales){if(s.ch!=='app'||s.date<daysAgo(sd-1))continue;const c=saleCalc(s);const a=c.gross-c.comm;rec+=a;recRows.push({date:s.date,br:s.br,amt:a,due:addDays(s.date,sd)})}
+ const adv=S.emp.reduce((a,e)=>a+e.adv,0),outs=S.outside.reduce((a,o)=>a+o.amount,0);
+ const unpaid=S.inv.filter(v=>v.status==='approved'&&v.paid===false);const pay=unpaid.reduce((a,v)=>a+invTotal(v),0);
+ const due7=unpaid.filter(v=>v.dueDate<=daysAhead(7)),due7v=due7.reduce((a,v)=>a+invTotal(v),0);
+ const payroll=S.emp.reduce((a,e)=>a+empParts(e).net,0),rent=S.exp.filter(e=>e.cat==='إيجار'&&inPeriod(e.date)).reduce((a,e)=>a+e.amount,0)*k;
+ const other=Object.entries(R.byCat).filter(([c])=>c!=='مرتبات'&&c!=='إيجار').reduce((a,[,v])=>a+v,0)*k;
+ const td=+today().slice(8,10),n=new Date(+today().slice(0,4),+today().slice(5,7),0).getDate(),dUntil=d=>(d-td+n)%n;const pd=dUntil(S.settings.payDay||28),rd=dUntil(S.settings.rentDay||1);
+ const obl7=due7.map(v=>({n:'فاتورة '+v.supplier,d:v.dueDate,a:invTotal(v)}));if(pd<=7)obl7.push({n:'مرتبات الموظفين',d:addDays(today(),pd),a:payroll});if(rd<=7)obl7.push({n:'إيجار الفروع',d:addDays(today(),rd),a:rent});
+ const o7=obl7.reduce((a,o)=>a+o.a,0),o30=pay+payroll+rent+other,liquid=S.cash.cash+S.cash.bank,outside=rec+adv+outs,daily=(payroll+rent+other)/30;
+ return {cash:S.cash.cash,bank:S.cash.bank,liquid,rec,recRows,adv,outs,outside,unpaid,pay,due7,due7v,payroll,rent,other,obl7,o7,o30,after:liquid+outside-o30,coverDays:daily?liquid/daily:NaN,pd,rd}}
+function drawInfo(R){const k=K();const d=S.draw.filter(x=>inPeriod(x.date)).reduce((a,x)=>a+x.amount,0);const net=R.net*(R.share===1?1:1);return {d,dm:d*k,left:R.net-d,pct:R.net>0?d/R.net*100:(d?999:0)}}
+function supInfo(){const R=agg('all'),k=K();const rows=[];let save=0;
+ for(const g of S.ing){const qs=(S.quotes[g.id]||[]).slice();if(!qs.length)continue;const best=qs.reduce((a,b)=>b.price<a.price?b:a);const mq=(R.ingQty[g.id]||0)*k;const sv=Math.max(0,g.cost-best.price)*mq;save+=sv;rows.push({g,qs,best,mq,sv})}
+ const sc={};for(const s of S.sup){let n=0,sum=0,cheap=0,rises=0;for(const r of rows){const q=r.qs.find(x=>x.sup===s.name);if(!q)continue;n++;sum+=q.price/r.best.price;if(r.best.sup===s.name)cheap++;if(q.prev&&(q.price-q.prev)/q.prev>=.05)rises++}const idx=n?sum/n:1;sc[s.name]={n,idx,cheap,rises,value:(s.rating/5)/idx}}
+ return {rows,save,sc}}
+const isOps=e=>!/مدير|إدارة/.test(e.role);
+function empProd(br){const R=agg(br),es=S.emp.filter(e=>br==='all'||e.br===br),ops=es.filter(isOps),cap=S.settings.capacity||15,per=S.settings.period;
+ const hrs=es.length*(S.settings.workDays||26)*(S.settings.shiftHours||8)*per/30;const ordDay=R.orders/per;const req=Math.max(1,Math.ceil(ordDay/cap));const exc=Math.max(0,ops.length-req);
+ const avgOps=ops.length?ops.reduce((a,e)=>a+empCost(e),0)/ops.length:0;const chefs=es.filter(e=>/شيف|طباخ/.test(e.role));
+ return {R,es,ops,ordDay,req,exc,saving:exc*avgOps,laborOrder:R.orders?R.sal/R.orders:0,salesHour:hrs?R.rev/hrs:0,labp:R.labp,perDay:es.length?R.sal/per/es.length:0,chefs,dishChef:chefs.length?R.units/per/chefs.length:0,dishCost:R.units?chefs.reduce((a,e)=>a+empCost(e),0)*per/30/R.units:0}}
+function stockPred(){const R=agg('all'),lead=S.settings.lead||2;return S.ing.map(g=>{const dq=(R.ingQty[g.id]||0)/S.settings.period,days=dq?g.stock/dq:Infinity;return {g,dq,days,date:isFinite(days)?addDays(today(),Math.floor(days)):'—',need7:Math.max(0,dq*(7+lead)-g.stock)}}).sort((a,b)=>a.days-b.days)}
+function poText(s){const l=poList()[s]||[];return 'طلبية شراء — '+s+'\n'+l.map(x=>'- '+x.g.name+': '+fq(x.qty,x.g.unit)).join('\n')}
+function poList(){const by={};for(const g of S.ing)if(g.stock<g.min){(by[g.supplier]=by[g.supplier]||[]).push({g,qty:g.min-g.stock})}return by}
+function future(R){const k=K(),B=beInfo(R),sales=R.rev*k,a15=win(15).rev,p15=win(30).rev-a15,g=p15?clamp(a15/p15-1,-.08,.1,):0;
+ const dr=drawInfo(R).dm,start=S.cash.cash+S.cash.bank;
+ return [['متحفظ',g-.03],['واقعي',g],['متفائل',g+.04]].map(([n,gm])=>{let cum=0,cash=start,out=null,rows={};for(let m=1;m<=12;m++){const sm=sales*Math.pow(1+gm,m),net=sm*R.cmr-B.fx*Math.pow(1.01,m);cum+=net;cash+=net-dr;if(cash<0&&out===null)out=m;if([3,6,12].includes(m))rows[m]={net,cum,cash}}return {n,gm,rows,out}})}
+function planActions(R){const k=K(),A=[],B=beInfo(R),L=leakage(R),sp=supInfo(),mm=S.settings.minMargin||15,ck=cashPos(),dr=drawInfo(R);
+ const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{})})).filter(x=>x.qty);
+ if(R.rev&&isFinite(B.month)&&B.a30<B.month)A.push({u:1,t:'سدّ فجوة نقطة التعادل: ارفع المبيعات أو خفّض الثابتة',why:`مبيعات 30 يومًا ${M(B.a30)} أقل من التعادل ${M(B.month)}`,imp:B.month-B.a30,go:'dash'});
+ const low=rows.filter(x=>x.rev&&x.full/x.rev*100<mm);if(low.length){const imp=low.reduce((a,x)=>a+(mm/100*x.rev-x.full),0)*k;A.push({u:low.some(x=>x.full<0)?1:0,t:`راجع تكلفة وسعر ${low.length} منتجات: ${low.map(x=>x.r.name).join('، ')}`,why:`هامشها الصافي أقل من ${mm}%`,imp,go:'price'})}
+ const wl=(R.waste+R.shrinkCnt)*k;if(wl>0)A.push({u:wl>.02*R.net*k||wl>3000?1:0,t:'قلّل الهالك وفروق الجرد',why:`خسرت ${M(wl)} شهريًا هالكًا وعجز جرد`,imp:wl*.5,go:'stock'});
+ if(sp.save>0)A.push({u:0,t:'راجع أسعار الموردين وحوّل الشراء للأرخص',why:`الأرخص يوفر ${M(sp.save)} شهريًا`,imp:sp.save,go:'sup'});
+ const dc=R.byCh.direct,ap=R.byCh.app;if(dc&&ap&&dc.rev&&ap.rev){const dp=(dc.rev-dc.cogs-dc.comm-dc.del)/dc.rev,apx=(ap.rev-ap.cogs-ap.comm-ap.del)/ap.rev;if(dp>apx)A.push({u:0,t:'زوّد الطلب المباشر: حوّل 10% من طلبات التطبيق (واتساب/عروض مباشرة)',why:`مساهمة المباشر ${P(dp*100)} مقابل ${P(apx*100)} للتطبيق`,imp:ap.rev*.1*(dp-apx)*k,go:'dash'})}
+ const nm=R.rev?R.net/R.rev:0;const pl=rows.filter(x=>x.rev&&x.full/x.rev*100<mm+10).sort((a,b)=>b.qty-a.qty).slice(0,2);if(pl.length)A.push({u:0,t:`عدّل سعر ${pl.map(x=>x.r.name).join(' و ')} بنسبة 5%`,why:'أصناف مبيعاتها عالية وهامشها ضعيف',imp:pl.reduce((a,x)=>a+x.rev*.05*.7,0)*k,go:'price'});
+ const ex=L.items[2].v;if(ex>0)A.push({u:0,t:'فاوض على عمولة التطبيقات أو قلّل الخصومات الممولة',why:L.items[2].n,imp:ex*.5,go:'dash'});
+ if(L.items[3].v>0)A.push({u:0,t:'اضبط الخصومات غير المبررة',why:L.items[3].n,imp:L.items[3].v,go:'pos'});
+ if(R.rev)for(const [cat,v] of Object.entries(R.byCat)){const lim=limOf(cat),pct=v/R.rev*100;if(pct>lim)A.push({u:pct>lim*1.5?1:0,t:`خفّض مصروف «${cat}» إلى حدّه`,why:`${P(pct)} من المبيعات والحد ${lim}%`,imp:(v-lim/100*R.rev)*k,go:'exp'})}
+ const ep=empProd(S.settings.br||'all');if(ep.exc>0)A.push({u:0,t:`راجع عدد الموظفين (زيادة ${ep.exc} عن احتياج التشغيل)`,why:`الطلبات ${N(ep.ordDay)} يوميًا تحتاج ${ep.req} موظف تشغيل`,imp:ep.saving,go:'pay'});
+ if(dr.d>0&&R.net>0&&dr.d>.5*R.net)A.push({u:dr.d>R.net?1:0,t:'راجع المسحوبات الشخصية',why:`المسحوبات ${M(dr.d)} = ${P(dr.pct)} من صافي الربح`,imp:Math.max(0,dr.d-.5*R.net)*k,go:'cash'});
+ const lowS=S.ing.filter(g=>g.stock<=g.min);if(lowS.length)A.push({u:1,t:`اطلب الخامات الناقصة: ${lowS.map(g=>g.name).join('، ')}`,why:'تحت الحد الأدنى؛ النفاد يوقف البيع',imp:0,go:'stock'});
+ const od=ck.unpaid.filter(v=>v.dueDate<today());if(od.length)A.push({u:1,t:`سدّد فواتير موردين متأخرة (${od.length})`,why:`${M(od.reduce((a,v)=>a+invTotal(v),0))} متأخرة`,imp:0,go:'cash'});
+ A.sort((a,b)=>(b.u-a.u)||(b.imp-a.imp));const top=A.slice(0,5);let nu=0;top.forEach(a=>{if(a.u)a.l='u';else{a.l=nu<2?'m':'g';nu++}});
+ return {top,rest:A.slice(5),total:top.reduce((a,x)=>a+x.imp,0),all:A}}
 const DEF_LIM={'إيجار':10,'مرتبات':25,'كهرباء ومياه وغاز':4,'تسويق وإعلانات':5,'صيانة':2,'نظافة':1,'إنترنت واشتراكات':1,'مصاريف إدارية':3,'نقل وتوصيل':2,'أخرى':2};
 const limOf=c=>(S.settings.limits&&S.settings.limits[c]!==undefined)?+S.settings.limits[c]:(DEF_LIM[c]??5);
 function win(days,br=S.settings.br||'all'){let rev=0,ord=0;const from=daysAgo(days-1);for(const s of S.sales){if(s.date<from||s.date>today())continue;if(br!=='all'&&s.br!==br)continue;const c=saleCalc(s);rev+=c.gross;ord+=s.orders!==undefined?s.orders:Math.round(c.units/2.2)}return {rev,ord}}
@@ -185,68 +269,183 @@ function alerts(){const A=[];const R=agg();const B=beInfo(R);
   if(best)A.push(['i',`💡 فرصة: كل 10% زيادة في مبيعات ${esc(best.r.name)} تضيف ${M(best.cm*.1)} ربحًا وترفع هامش المطعم لأن مصروفاتك الثابتة لا تزيد`]);
  }
  if(R.canc&&R.canc/(R.orders+R.canc)>.05)A.push(['w',`الطلبات الملغاة ${N(R.canc)} (${P(R.canc/(R.orders+R.canc)*100)}) بقيمة ${M(R.cancVal)} — أعلى من 5%`]);
- for(const i of S.ing)if(i.stock<=i.min)A.push(['c',`مخزون منخفض: ${i.name} (${N(i.stock)} ${UL[i.unit]} ≤ الحد الأدنى ${N(i.min)})`]);
+ for(const i of S.ing)if(i.stock<=i.min)A.push(['c',`مخزون منخفض: ${esc(i.name)} (${fq(i.stock,i.unit)} ≤ الحد الأدنى ${fq(i.min,i.unit)}) — اطلب ${fq(Math.max(i.min-i.stock,0),i.unit)}`]);
  for(const p of S.plog.slice(-20))if(p.pct>=8&&p.date>=daysAgo(14))A.push(['w',`ارتفع سعر ${esc(p.name)} ${P(p.pct)} (${p.date})`]);
  for(const r of S.rec){const c=recCost(r).total;for(const k in S.channels){const n=chanNet(r.prices[k],k,k==='app'?5:0);const m=n-c-S.channels[k].del;if(m<=0)A.push(['c',`${r.name} يخسر على قناة ${S.channels[k].name} (صافي ${N(m,1)} للوحدة)`]);else if(m/r.prices[k]<.15)A.push(['w',`هامش ${r.name} على ${S.channels[k].name} منخفض (${P(m/r.prices[k]*100)})`])}}
  for(const r of S.rec){const x=R.byRec[r.id];if(x&&x.qty&&x.full<0)A.push(['w',`${esc(r.name)} لا يغطي حصته من التكاليف غير المباشرة (${M(x.full)})`])}
  if((S.settings.br||'all')==='all')for(const b of S.branches){const x=agg(b.id);if(x.rev&&x.net<0)A.push(['c',`فرع ${esc(b.name)} يخسر (${M(x.net)})`])}
  for(const i of S.inv.filter(i=>i.status==='pending'))A.push(['i',`فاتورة ${esc(i.supplier)} بانتظار الاعتماد`]);
  for(const c of S.counts.slice(-10))if(c.date>=daysAgo(7)&&Math.abs(c.pct)>=5)A.push(['w',`فرق جرد ${esc(c.name)}: ${c.diff>0?'+':''}${N(c.diff)} ${UL[c.unit]} (${P(c.pct)})`]);
+ {const u1=useWin(daysAgo(6),today()),u0=useWin(daysAgo(13),daysAgo(7));if(u1.rev&&u0.rev)for(const g of S.ing){const a=(u1.q[g.id]||0)/u1.rev,b=(u0.q[g.id]||0)/u0.rev;if(b>0&&a/b-1>=.15)A.push(['w',`استهلاك ${esc(g.name)} زاد ${P((a/b-1)*100)} عن الأسبوع السابق بالنسبة للمبيعات`])}}
+ {const w1=win(1),av=(win(8).rev-w1.rev)/7;if(av>0&&w1.rev<.8*av)A.push(['w',`مبيعات اليوم ${M(w1.rev)} أقل من المعتاد (متوسط آخر 7 أيام ${M(av)})`])}
+ for(const q of stockPred()){if(q.dq>0&&q.days<3&&q.g.stock>q.g.min)A.push(['w',`${esc(q.g.name)} تكفي ${N(q.days,1)} يوم فقط حسب معدل الاستهلاك`]);if(q.dq>0&&q.days>45)A.push(['i',`${esc(q.g.name)}: مخزون يكفي ${N(q.days)} يوم — أكثر من احتياج المبيعات (رأس مال راكد)`])}
+ {const ck=cashPos(),dr=drawInfo(R),F=msForecast(R),L=leakage(R);
+  if(ck.after<0)A.push(['c',`السيولة: الكاش والبنك والمستحقات لا تغطي التزامات 30 يومًا (عجز ${M(-ck.after)})`]);
+  const od=ck.unpaid.filter(v=>v.dueDate<today());if(od.length)A.push(['c',`${od.length} فاتورة مورد متأخرة السداد بقيمة ${M(od.reduce((a,v)=>a+invTotal(v),0))}`]);
+  if(ck.o7>ck.liquid)A.push(['c',`التزامات الأسبوع القادم ${M(ck.o7)} أكبر من الكاش والبنك ${M(ck.liquid)}`]);
+  if(dr.d>0&&R.net>0&&dr.d>R.net)A.push(['c',`المسحوبات ${M(dr.d)} أكبر من صافي الربح ${M(R.net)} — تأكل رأس المال`]);else if(dr.d>0&&R.net>0&&dr.d>.7*R.net)A.push(['w',`المسحوبات ${P(dr.pct)} من صافي الربح`]);
+  if(F.net<0)A.push(['c',`توقع نهاية الشهر: خسارة ${M(-F.net)}`]);else if(F.net<F.tgN)A.push(['w',`توقع نهاية الشهر: صافي الربح ${M(F.net)} أقل من التارجت ${M(F.tgN)}`]);
+  if(L.total>3000)A.push(['w',`تسريب الأرباح: تفقد ${M(L.total)} شهريًا`])}
  const o={c:0,w:1,i:2};return A.sort((a,b)=>o[a[0]]-o[b[0]])}
-function health(){const R=agg();const B=beInfo(R);let s=0;const parts=[];
- const f=R.rev?Math.max(0,Math.min(25,25-(R.fcp-30)*2.5)):12;s+=f;
- parts.push({n:'تكلفة الطعام',s:f,m:25,v:`الفعلية ${P(R.fcp)} من المبيعات — الأفضل 30% أو أقل`,tip:R.fcp>30?`كل 1% تنخفضها توفر ${M(R.rev*.01)}: راجع الأسعار والجرامات والهالك`:''});
- const np=R.rev?R.net/R.rev*100:0;const m=Math.max(0,Math.min(30,np*2));s+=m;
- parts.push({n:'هامش صافي الربح',s:m,m:30,v:`صافي الربح ${P(np)} من المبيعات — الدرجة الكاملة عند 15% فأكثر`,tip:np<15?'ارفع الأسعار أو خفّض المصروفات والعمولات':''});
- const low=S.ing.filter(i=>i.stock<=i.min).length;const st=Math.max(0,20-low*5);s+=st;
- parts.push({n:'المخزون',s:st,m:20,v:low?`${low} خامة تحت الحد الأدنى`:'كل الخامات فوق الحد الأدنى',tip:low?'اعتمد أوامر شراء للخامات الناقصة قبل نفادها':''});
- const bad=S.rec.filter(r=>Object.keys(S.channels).some(k=>chanNet(r.prices[k],k)-recCost(r).total-S.channels[k].del<=0)).length;const pr=Math.max(0,15-bad*5);s+=pr;
- parts.push({n:'التسعير',s:pr,m:15,v:bad?`${bad} صنف يخسر على قناة واحدة على الأقل`:'لا يوجد صنف يخسر على أي قناة',tip:bad?'عدّل أسعار الأصناف الخاسرة من صفحة التسعير':''});
- const sp=B.a30?(B.a30-B.month)/B.a30*100:0;const sf=isFinite(B.month)&&B.a30?Math.max(0,Math.min(10,sp*.4)):0;s+=sf;
- parts.push({n:'هامش الأمان (التعادل)',s:sf,m:10,v:isFinite(B.month)?`المبيعات ${sp>=0?'أعلى':'أقل'} من نقطة التعادل الشهرية بنسبة ${P(Math.abs(sp))} — الكاملة عند 25% فأكثر`:'لا توجد بيانات',tip:sp<25?'ارفع المبيعات أو خفّض المصروفات الثابتة لزيادة الأمان':''});
- return {score:Math.round(s),parts}}
+function health(){const R=agg(),B=beInfo(R),F=msForecast(R),parts=[];
+ const np=R.rev?R.net/R.rev*100:0;parts.push({n:'الربحية',s:clamp(np/15*100),v:`صافي الربح ${P(np)} من المبيعات (الكاملة عند 15%+)`,tip:np<15?'ارفع الأسعار أو خفّض المصروفات والعمولات':''});
+ const sh=R.rev?R.shrink/R.rev*100:0;parts.push({n:'إدارة الخامات',s:clamp(100-Math.max(0,R.fcp-30)*7-sh*10),v:`تكلفة الخامات ${P(R.fcp)} (الأفضل ≤30%) وهالك وفروق ${P(sh)}`,tip:R.fcp>30?`كل 1% تنخفضها توفر ${M(R.rev*.01)}: راجع الأسعار والجرامات والهالك`:''});
+ parts.push({n:'إدارة العمالة',s:clamp(100-Math.max(0,R.labp-20)*8),v:`Labor Cost ${P(R.labp)} من المبيعات (الأفضل ≤20%)`,tip:R.labp>20?'راجع الإضافي وعدد الموظفين مقابل الطلبات':''});
+ parts.push({n:'المبيعات',s:F.tgS?clamp(F.proj/F.tgS*100):70,v:`المتوقع للشهر ${M(F.proj)} من هدف ${M(F.tgS)}`,tip:F.proj<F.tgS?'ارفع الطلبات المباشرة أو متوسط الفاتورة':''});
+ const low=S.ing.filter(i=>i.stock<=i.min).length,pr=stockPred().filter(x=>x.dq>0&&x.days<3).length;parts.push({n:'المخزون',s:clamp(100-low*20-pr*10),v:low||pr?`${low} خامة تحت الحد الأدنى، ${pr} تنفد خلال 3 أيام`:'كل الخامات فوق الحد الأدنى',tip:low||pr?'اعتمد طلبية الشراء المقترحة من صفحة الخامات':''});
+ let over=0,ovn=[];if(R.rev)for(const [c,v] of Object.entries(R.byCat)){const pc=v/R.rev*100,l=limOf(c);if(pc>l){over+=(pc-l);ovn.push(c)}}
+ parts.push({n:'المصروفات',s:clamp(100-over*6),v:ovn.length?`تجاوز الحد: ${ovn.join('، ')}`:'كل المصروفات ضمن حدودها',tip:ovn.length?'خفّض البنود المتجاوزة (انظر التحذيرات)':''});
+ return {score:Math.round(parts.reduce((a,p)=>a+p.s,0)/parts.length),parts}}
 
 // ---------- ui ----------
-const TABS=[['dash','📊 اللوحة'],['inv','🧾 الفواتير'],['stock','📦 الخامات والمخزون'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['pos','🛒 المبيعات'],['exp','💸 المصروفات'],['pay','👥 الرواتب'],['br','🏢 الفروع'],['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['ai','🤖 المستشار'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']];
-let tab='dash';let draft=null,cart=[];
+const TABS=[['plan','🚀 خطة اليوم'],['dash','📊 اللوحة'],['inv','🧾 الفواتير'],['stock','📦 الخامات والمخزون'],['sup','🤝 الموردون'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['pos','🛒 المبيعات'],['exp','💸 المصروفات'],['cash','💵 الخزنة والسيولة'],['pay','👥 الرواتب والإنتاجية'],['br','🏢 الفروع'],['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['ai','🤖 المستشار'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']];
+let tab='plan';let draft=null,cart=[];
 function nav(){const na=alerts().filter(a=>a[0]!=='i').length;$('#nav').innerHTML='<h1>FOODPILOT AI</h1><small>مطعم تجريبي — نسخة عمل</small><select id="brSel" style="width:100%;margin:0 0 10px;background:#1c3a2b;color:#fff;border:0">'+[['all','كل الفروع']].concat(S.branches.map(b=>[b.id,b.name])).map(o=>`<option value="${o[0]}"${o[0]===(S.settings.br||'all')?' selected':''}>${o[1]}</option>`).join('')+'</select>'+TABS.map(t=>`<button class="${t[0]===tab?'on':''}" data-tab="${t[0]}">${t[1]}${t[0]==='dash'&&na?`<span class="bd">${na}</span>`:''}</button>`).join('')}
 function go(t){tab=t;render()}
 function render(){nav();const f=V[tab];$('#main').innerHTML=f();if(A[tab+'_init'])A[tab+'_init']();window.scrollTo(0,0)}
-const kpi=(k,v,c='',sub='')=>`<div class="card"><div class="k">${k}</div><div class="v ${c}">${v}</div>${sub?`<div class="note">${sub}</div>`:''}</div>`;
+const kpi=(k,v,c='',sub='',d='')=>`<div class="card${d?' click':''}"${d?` data-kd="${d}"`:''}><div class="k">${k}${d?' <span class="note">· تفاصيل ›</span>':''}</div><div class="v ${c}">${v}</div>${sub?`<div class="note">${sub}</div>`:''}</div>`;
 const per=()=>`<div class="note">الفترة: آخر ${S.settings.period} يوم — ${esc(brName())}</div>`;
 const V={};
-V.dash=()=>{const R=agg(),H=health(),al=alerts(),w1=win(1),w7=win(7);
+const tbl=(h,rows)=>`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${h.length}" class="note">لا توجد بيانات</td></tr>`}</table></div>`;
+function salesAgg(d1,d2){const o={byCh:{},byBr:{},byRec:{},byDay:{},rev:0,ord:0,canc:0,cancVal:0};const add=(m,k,r,q,od)=>{const x=m[k]||(m[k]={rev:0,ord:0,qty:0,canc:0,cv:0});x.rev+=r;x.ord+=od;x.qty+=q;return x};
+ for(const s of salesIn(d1,d2)){const c=saleCalc(s),od=s.orders!==undefined?s.orders:Math.round(c.units/2.2);o.rev+=c.gross;o.ord+=od;o.canc+=s.canc||0;o.cancVal+=s.cancVal||0;
+  for(const [m,k] of [[o.byCh,s.ch],[o.byBr,s.br],[o.byDay,s.date]]){const x=add(m,k,c.gross,c.units,od);x.canc+=s.canc||0;x.cv+=s.cancVal||0}
+  for(const it of s.items){const x=o.byRec[it.rid]||(o.byRec[it.rid]={rev:0,qty:0});x.qty+=it.qty;x.rev+=it.qty*it.price*(1-s.disc/100)}}return o}
+const dSales=(d1,d2,ti)=>{const o=salesAgg(d1,d2);return `<h3>${ti}: ${M(o.rev)} — ${N(o.ord)} طلب</h3>`+tbl(['القناة','المبيعات','الطلبات','متوسط الفاتورة'],Object.entries(o.byCh).map(([k,x])=>[S.channels[k].name,M(x.rev),N(x.ord),M(x.ord?x.rev/x.ord:0)]))+tbl(['الفرع','المبيعات','الطلبات','متوسط الفاتورة'],Object.entries(o.byBr).map(([k,x])=>[esc(brN(k)),M(x.rev),N(x.ord),M(x.ord?x.rev/x.ord:0)]))+tbl(['الصنف','الكمية','المبيعات'],Object.entries(o.byRec).sort((a,b)=>b[1].rev-a[1].rev).map(([k,x])=>[esc(REC(k)?.name),N(x.qty),M(x.rev)]))};
+const DETAIL={
+ sales1:()=>dSales(today(),today(),'مبيعات اليوم'),
+ sales7:()=>{const o=salesAgg(daysAgo(6),today());return dSales(daysAgo(6),today(),'مبيعات آخر 7 أيام')+'<h3>يوميًا</h3>'+tbl(['اليوم','المبيعات','الطلبات'],Object.entries(o.byDay).sort().map(([d,x])=>[d,M(x.rev),N(x.ord)]))},
+ salesP:()=>dSales(daysAgo(S.settings.period-1),today(),'مبيعات الفترة'),
+ orders:()=>{const o=salesAgg(daysAgo(S.settings.period-1),today());return `<h3>الطلبات: ${N(o.ord)} (بمتوسط ${N(o.ord/S.settings.period)} يوميًا)</h3>`+tbl(['القناة','الطلبات','حصتها'],Object.entries(o.byCh).map(([k,x])=>[S.channels[k].name,N(x.ord),P(o.ord?x.ord/o.ord*100:0)]))+tbl(['الفرع','الطلبات','حصته'],Object.entries(o.byBr).map(([k,x])=>[esc(brN(k)),N(x.ord),P(o.ord?x.ord/o.ord*100:0)]))},
+ ticket:()=>{const o=salesAgg(daysAgo(S.settings.period-1),today());return `<h3>متوسط الفاتورة: ${M(o.ord?o.rev/o.ord:0)}</h3>`+tbl(['القناة','المبيعات','الطلبات','متوسط الفاتورة'],Object.entries(o.byCh).map(([k,x])=>[S.channels[k].name,M(x.rev),N(x.ord),M(x.ord?x.rev/x.ord:0)]))+tbl(['الفرع','المبيعات','الطلبات','متوسط الفاتورة'],Object.entries(o.byBr).map(([k,x])=>[esc(brN(k)),M(x.rev),N(x.ord),M(x.ord?x.rev/x.ord:0)]))},
+ canc:()=>{const o=salesAgg(daysAgo(S.settings.period-1),today());const f=x=>P(x.ord+x.canc?x.canc/(x.ord+x.canc)*100:0);return `<h3>الطلبات الملغاة: ${N(o.canc)} بقيمة ${M(o.cancVal)}</h3>`+tbl(['القناة','ملغاة','قيمتها','نسبة الإلغاء'],Object.entries(o.byCh).map(([k,x])=>[S.channels[k].name,N(x.canc),M(x.cv),f(x)]))+tbl(['الفرع','ملغاة','قيمتها','نسبة الإلغاء'],Object.entries(o.byBr).map(([k,x])=>[esc(brN(k)),N(x.canc),M(x.cv),f(x)]))},
+ cogs:()=>{const R=agg(),tot=Object.values(R.ingUse).reduce((a,v)=>a+v,0)||1;return `<h3>الخامات المستخدمة: ${M(R.cogs)} (${P(R.fcp)} من المبيعات)</h3>`+tbl(['الخامة','الكمية المستهلكة','القيمة','النسبة'],Object.entries(R.ingUse).sort((a,b)=>b[1]-a[1]).map(([id,v])=>[esc(ING(id).name),fq(R.ingQty[id]||0,ING(id).unit),M(v),P(v/tot*100)]))+tbl(['الصنف','الكمية','تكلفة الخامات','% من مبيعاته'],Object.entries(R.byRec).sort((a,b)=>b[1].cogs-a[1].cogs).map(([id,x])=>[esc(REC(id)?.name),N(x.qty),M(x.cogs),P(x.rev?x.cogs/x.rev*100:0)]))},
+ comm:()=>{const R=agg();return `<h3>العمولات والتوصيل: ${M(R.comm+R.del)}</h3>`+tbl(['القناة','المبيعات','عمولة المنصة','التوصيل','النسبة من مبيعات القناة'],Object.keys(S.channels).map(k=>{const b=R.byCh[k];return [S.channels[k].name,M(b.rev),M(b.comm),M(b.del),P(b.rev?(b.comm+b.del)/b.rev*100:0)]}))},
+ exp:()=>{const R=agg();return `<h3>المصروفات: ${M(R.fixed+R.varx)} (${P(R.rev?(R.fixed+R.varx)/R.rev*100:0)} من المبيعات)</h3>`+tbl(['البند','المبلغ','% من المبيعات','الحد المسموح','الحالة'],Object.entries(R.byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>{const pc=R.rev?v/R.rev*100:0,l=limOf(c);return [esc(c),M(v),P(pc),l+'%',`<span class="${pc>l?'neg':'pos'}">${pc>l?'تجاوز':'ضمن الحد'}</span>`]}))},
+ net:()=>{const R=agg();return `<h3>صافي ربح المطعم: ${M(R.net)}</h3>`+tbl(['البند','المبلغ','%'],[['صافي المبيعات',M(R.rev),'100%'],['− خامات وتغليف',M(-R.cogs),P(R.rev?R.cogs/R.rev*100:0)],['− عمولات وتوصيل',M(-(R.comm+R.del)),P(R.rev?(R.comm+R.del)/R.rev*100:0)],['− مصروفات',M(-(R.fixed+R.varx)),P(R.rev?(R.fixed+R.varx)/R.rev*100:0)],['− هالك وفروق جرد',M(-R.shrink),P(R.rev?R.shrink/R.rev*100:0)],['= صافي الربح',M(R.net),P(R.rev?R.net/R.rev*100:0)]])+tbl(['الفرع','المبيعات','صافي الربح'],S.branches.map(b=>{const x=agg(b.id);return [esc(b.name),M(x.rev),`<span class="${x.net<0?'neg':'pos'}">${M(x.net)}</span>`]}))},
+ labor:()=>{const R=agg();return `<h3>Labor Cost: ${P(R.labp)} (${M(R.sal)})</h3>`+tbl(['الفرع','تكلفة العمالة','% من مبيعاته'],S.branches.map(b=>{const x=agg(b.id);return [esc(b.name),M(x.sal),P(x.labp)]}))+tbl(['الوظيفة','العدد','التكلفة الشهرية'],Object.entries(S.emp.reduce((a,e)=>{(a[e.role]=a[e.role]||{n:0,c:0}).n++;a[e.role].c+=empCost(e);return a},{})).map(([r,x])=>[esc(r),x.n,M(x.c)]))},
+ stockv:()=>`<h3>قيمة المخزون: ${M(S.ing.reduce((a,i)=>a+i.stock*i.cost,0))}</h3>`+tbl(['الخامة','الرصيد','التكلفة','القيمة'],S.ing.map(i=>[esc(i.name),fq(i.stock,i.unit),N(i.cost,3),M(i.stock*i.cost)]).sort()),
+ liquid:()=>{const C=cashPos();return `<h3>السيولة: ${M(C.liquid)}</h3>`+tbl(['البند','المبلغ'],[['الكاش',M(C.cash)],['البنك',M(C.bank)],['مستحقات بره',M(C.outside)],['التزامات 7 أيام',M(C.o7)],['التزامات 30 يومًا',M(C.o30)],['الصافي بعد الالتزامات',M(C.after)]])+'<button class="b" data-act="planGo" data-t="cash">افتح الخزنة والسيولة</button>'},
+ draw:()=>{const R=agg('all'),d=drawInfo(R);return `<h3>المسحوبات: ${M(d.d)}</h3>`+tbl(['التاريخ','المبلغ','المصدر','ملاحظة'],S.draw.map(x=>[x.date,M(x.amount),x.src==='cash'?'كاش':'بنك',esc(x.note)]))+`<div class="note">${P(d.pct)} من صافي الربح</div>`}
+};
+function secFlow(R){const cat=c=>R.byCat[c]||0,rent=cat('إيجار'),sal=cat('مرتبات'),util=cat('كهرباء ومياه وغاز'),other=Math.max(0,R.fixed+R.varx-rent-sal-util);
+ const segs=[['خامات وهالك',R.cogs+R.shrink,'#0f7a4d'],['مرتبات',sal,'#1c7ed6'],['إيجار',rent,'#e8590c'],['عمولات وتوصيل',R.comm+R.del,'#c92a2a'],['كهرباء ومرافق',util,'#f59f00'],['مصاريف أخرى',other,'#868e96'],['صافي الربح',Math.max(0,R.net),'#37b24d']];
+ const tot=Math.max(R.rev,segs.reduce((a,s)=>a+s[1],0))||1;let cum=0;
+ const circ=segs.map(s=>{const len=s[1]/tot*100;const c=`<circle class="seg" r="15.9155" cx="21" cy="21" fill="none" stroke="${s[2]}" stroke-width="6" data-len="${len}" style="stroke-dasharray:0 100;stroke-dashoffset:${-cum}"><title>${s[0]}</title></circle>`;cum+=len;return c}).join('');
+ return `<div class="card"><h3 style="margin-top:0">💸 أين تذهب أموالي؟ (Money Flow)</h3><div class="note">كل 100 جنيه مبيعات بتتوزع كده:</div>
+ <div class="row" style="align-items:center;gap:20px"><svg viewBox="0 0 42 42" class="donut" style="width:210px;height:210px;color:var(--ink)"><g transform="rotate(-90 21 21)">${circ}</g><text x="21" y="21" text-anchor="middle" font-size="4" fill="currentColor" font-weight="800">100 جنيه</text><text x="21" y="25.5" text-anchor="middle" font-size="2.4" fill="var(--mute)">مبيعات</text></svg>
+ <table style="flex:1;min-width:260px">${segs.map(s=>`<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s[2]}"></span> ${s[0]}</td><td><b>${N(R.rev?s[1]/R.rev*100:0,1)}</b> جنيه</td><td class="note">${M(s[1])}</td></tr>`).join('')}</table></div>
+ ${R.net<0?'<div class="al c">المطعم يخسر: المصروفات أكبر من المبيعات.</div>':''}</div>`}
+function secLeak(R){const L=leakage(R);return `<div class="card"><h3 style="margin-top:0">🕳 تسريب الأرباح (Profit Leakage)</h3><div class="note">فلوس بتضيع من غير ما تاخد بالك (محسوبة شهريًا):</div>
+ <table>${L.items.slice().sort((a,b)=>b.v-a.v).map(x=>`<tr><td>${x.n}<div class="note">${x.t}</div></td><td class="${x.v>0?'neg':''}"><b>${M(x.v)}</b></td></tr>`).join('')}</table>
+ <div class="al ${L.total>0?'c':'i'}" style="margin-top:8px;font-size:16px"><b>أنت بتفقد ${M(L.total)} شهريًا بسبب تسريبات الأرباح.</b></div></div>`}
+function secForecast(R){const F=msForecast(R),D=dailyTarget(R,F),loss=F.net<0,ok=F.net>=F.tgN;
+ return `<div class="card"><h3 style="margin-top:0">🔮 توقع نهاية الشهر</h3><div class="note">اليوم ${F.day} من ${F.dim} — المبيعات حتى الآن ${M(F.mtd)}، والباقي يُقدَّر بمتوسط آخر 7 أيام.</div>
+ <div class="grid">${kpi('مبيعات الشهر المتوقعة',M(F.proj),'s','الهدف '+M(F.tgS))}${kpi('إجمالي التكاليف المتوقعة',M(F.costs),'s')}${kpi('صافي الربح المتوقع',M(F.net),loss?'neg':'pos','الهدف '+M(F.tgN))}</div>
+ <div class="al ${loss?'c':ok?'i':''}">${loss?'⚠ متوقع تقفل الشهر بخسارة '+M(-F.net):ok?'✓ متوقع تحقق التارجت: صافي ربح '+M(F.net):'متوقع تحقق مبيعات '+M(F.proj)+' وصافي ربح '+M(F.net)+' بنهاية الشهر — أقل من التارجت بـ '+M(F.tgN-F.net)}</div>
+ <h3>🎯 المبيعات المطلوبة بكرة</h3>
+ <div class="grid">${kpi('محتاج تبيع بكرة',M(D.req),'s','التعادل اليومي '+M(D.be))}${kpi('عدد الطلبات المطلوب',isFinite(D.orders)?N(D.orders):'-','s','بمتوسط فاتورة '+M(D.tk))}${kpi('متوسط الفاتورة المطلوب',isFinite(D.ticket)?M(D.ticket):'-','s','عند '+N(D.ordDay)+' طلب/يوم')}${kpi('المطلوب كل ساعة',M(D.hour),'s','على '+(S.settings.hours||12)+' ساعة تشغيل')}</div>
+ <div class="note">مطلوب لتحقيق صافي ربح ${M(F.tgN)} هذا الشهر: ${isFinite(D.need)?M(D.need):'-'} مبيعات. غيّر الأهداف من الإعدادات.</div></div>`}
+function secHealth(H){const col=H.score>=75?'var(--ok)':H.score>=50?'var(--warn)':'var(--bad)',w=H.parts.slice().sort((a,b)=>a.s-b.s)[0];
+ return `<div class="card"><div class="k" style="text-align:center">💓 نبض المطعم — Restaurant Health Score</div><div class="score" style="border:10px solid ${col};color:${col}">${H.score}</div>
+ <div style="text-align:center;font-weight:700;color:${col}">${H.score>=75?'صحة جيدة':H.score>=50?'تحتاج انتباه':'في خطر'}</div>
+ <div class="note" style="margin:6px 0">التقييم متوسط 6 عناصر، كل عنصر من 100. 75+ جيد · 50–74 انتباه · أقل من 50 خطر.</div>
+ ${H.score<100?`<div class="al w"><b>أكبر سبب لانخفاض التقييم:</b> ${w.n} (${N(w.s)}/100) — ${w.v}</div>`:''}
+ ${H.parts.map(p=>{const c=p.s>=85?'var(--ok)':p.s>=60?'var(--warn)':'var(--bad)';return `<div style="margin:10px 0"><div class="row" style="margin:0;justify-content:space-between"><b>${p.n}</b><span dir="ltr" style="color:${c};font-weight:700">${N(p.s)} / 100</span></div><div style="background:var(--soft);border-radius:6px"><div style="width:${p.s}%;background:${c};height:8px;border-radius:6px"></div></div><div class="note">${p.v}</div>${p.tip?`<div class="note" style="color:${c}">← ${p.tip}</div>`:''}</div>`}).join('')}</div>`}
+function secProducts(R){const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{})})).filter(x=>x.qty);const mg=x=>x.rev?x.full/x.rev*100:0;
+ const lst=(a,f)=>a.slice(0,3).map((x,i)=>`<div class="row" style="margin:2px 0;justify-content:space-between"><span>${i+1}. ${esc(x.r.name)}</span><b>${f(x)}</b></div>`).join('')||'<div class="note">—</div>';
+ const box=(t,l,c)=>`<div class="card" style="margin:0"><div class="k" style="margin-bottom:6px;color:${c};font-weight:700">${t}</div>${l}</div>`;
+ const byF=rows.slice().sort((a,b)=>b.full-a.full),byM=rows.slice().sort((a,b)=>mg(b)-mg(a)),byQ=rows.slice().sort((a,b)=>b.qty-a.qty),byC=rows.slice().sort((a,b)=>b.cogs/b.qty-a.cogs/a.qty);
+ let par='';for(const a of byQ)for(const b of byF){if(b.qty<a.qty&&b.full>a.full&&(!par||b.full-a.full>par.d))par={d:b.full-a.full,a,b}}
+ return `<div class="card"><h3 style="margin-top:0">🏆 المنتجات اللي بتكسبك فعلاً (Product Profit Ranking)</h3>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">${box('💰 أعلى إجمالي ربح',lst(byF,x=>M(x.full)),'var(--ok)')}${box('📈 أعلى هامش ربح',lst(byM,x=>P(mg(x))),'var(--ok)')}${box('🔥 أعلى مبيعات',lst(byQ,x=>N(x.qty)+' وحدة'),'var(--brand)')}${box('📉 أقل ربحية',lst(byF.slice().reverse(),x=>M(x.full)+' · '+P(mg(x))),'var(--bad)')}${box('🏭 أعلى تكلفة تصنيع',lst(byC,x=>N(x.cogs/x.qty,1)+' ج.م ('+P(x.rev?x.cogs/x.rev*100:0)+')'),'var(--warn)')}</div>
+ ${par?`<div class="al w" style="margin-top:10px">💡 <b>${esc(par.a.r.name)}</b> باع ${N(par.a.qty)} وحدة وربحه ${M(par.a.full)}، بينما <b>${esc(par.b.r.name)}</b> باع ${N(par.b.qty)} فقط وربحه ${M(par.b.full)} — الأكثر مبيعًا مش دايمًا الأكثر ربحًا.</div>`:''}</div>`}
+function secOpp(R){const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{})})).filter(x=>x.qty),nm=R.rev?R.net/R.rev:0;
+ const opp=rows.map(x=>({...x,dp:.1*x.cm,nm2:(R.net+.1*x.cm)/(R.rev+.1*x.rev),up:x.cm/x.rev>nm})).sort((a,b)=>b.dp-a.dp);
+ return `<div class="card"><h3 style="margin-top:0">💡 هل زيادة مبيعات صنف تحسّن الهامش؟</h3><div class="note">المصروفات الثابتة لا تزيد مع الطلبات الإضافية. الصنف الذي هامش مساهمته أعلى من هامش المطعم الصافي (${P(nm*100)}) يرفع الهامش العام كلما زادت مبيعاته (افتراض زيادة 10% في الصنف فقط).</div>
+ ${tbl(['الصنف','هامش مساهمته','ربح إضافي عند +10%','هامش المطعم بعد الزيادة','الأثر'],opp.map(x=>[`<b>${esc(x.r.name)}</b>`,P(x.cm/x.rev*100),`<span class="pos">+${M(x.dp)}</span>`,P(x.nm2*100),`<span class="${x.up?'pos':'wr'}">${x.up?'↑ يرفع الهامش':'↓ يزيد الربح لكن يخفض النسبة'}</span>`]))}</div>`}
+function secChannels(R){const rows=Object.keys(S.channels).map(k=>{const b=R.byCh[k],cm=b.rev-b.cogs-b.comm-b.del;return {k,b,cm,pc:b.rev?cm/b.rev*100:0,po:b.ord?cm/b.ord:0}});
+ const best=rows.slice().sort((a,b)=>b.pc-a.pc)[0],worst=rows.slice().sort((a,b)=>a.pc-b.pc)[0];
+ return `<div class="card"><h3 style="margin-top:0">🧭 أين تبيع أفضل؟ (Sales Channel Intelligence)</h3>
+ ${tbl(['القناة','المبيعات','الحصة','الطلبات','متوسط الفاتورة','العمولة','خامات+توصيل','صافي المساهمة','% مساهمة','مساهمة/طلب','الحكم'],rows.map(r=>[`<b>${S.channels[r.k].name}</b>`,M(r.b.rev),P(R.rev?r.b.rev/R.rev*100:0),N(r.b.ord),M(r.b.ord?r.b.rev/r.b.ord:0),M(r.b.comm),M(r.b.cogs+r.b.del),`<b class="${r.cm<0?'neg':'pos'}">${M(r.cm)}</b>`,P(r.pc),M(r.po),r.k===best.k?'🏆 ركّز عليها':r.k===worst.k&&rows.length>1?'⚠ راجعها':'مقبولة']))}
+ <div class="note">الأفضل: <b>${S.channels[best.k].name}</b> (${P(best.pc)} مساهمة)${rows.length>1?` · الأضعف: <b>${S.channels[worst.k].name}</b> (${P(worst.pc)}).`:''} المساهمة بعد الخامات والعمولة والتوصيل وقبل المصروفات الثابتة.</div></div>`}
+function secBranches(){if((S.settings.br||'all')!=='all')return '';const k=K(),rows=S.branches.map(b=>({b,R:agg(b.id)})).filter(x=>x.R.rev);if(rows.length<2)return '';
+ const mx=(f,hi=true)=>rows.slice().sort((a,b)=>hi?f(b)-f(a):f(a)-f(b))[0].b.name;
+ return `<div class="card"><h3 style="margin-top:0">🏢 مقارنة الفروع</h3>
+ ${tbl(['الفرع','المبيعات','صافي الربح','تكلفة الخامات %','الهالك (شهريًا)','Labor %'],rows.map(x=>[`<b>${esc(x.b.name)}</b>`,M(x.R.rev),`<span class="${x.R.net<0?'neg':'pos'}">${M(x.R.net)}</span>`,P(x.R.fcp),M(x.R.waste*k),P(x.R.labp)]))}
+ <div class="grid" style="margin-top:10px">${[['🥇 أعلى مبيعات',mx(x=>x.R.rev)],['💰 أعلى ربح',mx(x=>x.R.net)],['🧮 أقل تكلفة خامات',mx(x=>x.R.fcp,false)],['🗑 أعلى هالك',mx(x=>x.R.waste)],['👥 أفضل إدارة عمالة',mx(x=>x.R.labp,false)]].map(a=>`<div class="card" style="margin:0"><div class="k">${a[0]}</div><b>${esc(a[1])}</b></div>`).join('')}</div></div>`}
+function empProdBlock(){const rows=[...S.branches.map(b=>({n:b.name,p:empProd(b.id)})),{n:'كل الفروع',p:empProd('all')}];
+ return `<div class="card"><h3 style="margin-top:0">⏱ إنتاجية الموظفين (Employee Productivity)</h3>${tbl(['الفرع','تكلفة الموظف/يوم','تكلفة العمالة لكل طلب','مبيعات لكل ساعة عمل','Labor %','أطباق/شيف/يوم','تكلفة تحضير الطبق','موظفو التشغيل','المطلوب للطلبات','التقييم'],rows.map(({n,p:pp})=>[`<b>${esc(n)}</b>`,M(pp.perDay),N(pp.laborOrder,1)+' ج.م',M(pp.salesHour),P(pp.labp),pp.chefs.length?N(pp.dishChef,1):'-',pp.chefs.length?N(pp.dishCost,1)+' ج.م':'-',pp.ops.length,pp.req,`<span class="${pp.exc?'neg':'pos'}">${pp.exc?'زيادة '+pp.exc+' (توفير '+M(pp.saving)+'/شهر)':'مناسب'}</span>`]))}
+ <div class="note">السعة المفترضة ${S.settings.capacity||15} طلب لكل موظف تشغيل يوميًا (من الإعدادات). موظفو التشغيل = غير المديرين. مبيعات الساعة = المبيعات ÷ (موظفون × ${S.settings.workDays||26} يوم × ${S.settings.shiftHours||8} ساعات).</div></div>`}
+function secStockPred(){const pr=stockPred().filter(x=>x.dq>0).slice(0,5);return `<div class="card"><h3 style="margin-top:0">📦 توقع نفاد المخزون</h3>${tbl(['الخامة','الاستهلاك اليومي','الرصيد','تنفد خلال','تاريخ النفاد','اشتري للأسبوع'],pr.map(x=>[`<b>${esc(x.g.name)}</b>`,fq(x.dq,x.g.unit),fq(x.g.stock,x.g.unit),`<span class="${x.days<3?'neg':x.days<7?'wr':'pos'}">${N(x.days,1)} يوم</span>`,x.date,x.need7>0?'<b>'+fq(x.need7,x.g.unit)+'</b>':'كافي']))}<div class="note">من متوسط الاستهلاك الفعلي لآخر ${S.settings.period} يوم، ويشمل مدة توريد ${S.settings.lead||2} يوم. التفاصيل الكاملة في صفحة الخامات.</div></div>`}
+function secSupMini(){const I=supInfo(),top=I.rows.filter(r=>r.sv>0).sort((a,b)=>b.sv-a.sv).slice(0,4);return `<div class="card"><h3 style="margin-top:0">🤝 ذكاء الموردين</h3><div class="al ${I.save>0?'w':'i'}">لو اشتريت كل خامة من المورد الأرخص توفر <b>${M(I.save)}</b> شهريًا.</div>${tbl(['الخامة','المورد الحالي','الأرخص','فرق السعر','توفير شهري'],top.map(r=>[esc(r.g.name),esc(r.g.supplier)+' '+N(r.g.cost,3),esc(r.best.sup)+' '+N(r.best.price,3),P((r.g.cost-r.best.price)/r.g.cost*100),`<b class="pos">${M(r.sv)}</b>`]))}</div>`}
+function secFuture(R){const F=future(R);return `<div class="card"><h3 style="margin-top:0">🔭 لو كملت بنفس الأداء؟ (Business Future Simulator)</h3><div class="note">إسقاط على اتجاه آخر 30 يومًا، مع زيادة الثابتة 1% شهريًا ومسحوباتك الحالية. الأرقام: صافي الربح الشهري ثم رصيد الكاش+البنك المتراكم.</div>
+ ${tbl(['السيناريو','نمو المبيعات/شهر','بعد 3 شهور','بعد 6 شهور','بعد سنة','الكاش'],F.map(s=>[`<b>${s.n}</b>`,`<span dir="ltr">${(s.gm>=0?'+':'')+N(s.gm*100,1)}%</span>`,...[3,6,12].map(m=>`<span class="${s.rows[m].net<0?'neg':'pos'}">${M(s.rows[m].net)}</span><div class="note">كاش ${M(s.rows[m].cash)}</div>`),s.out?`<span class="neg">ينفد في الشهر ${s.out}</span>`:'<span class="pos">لا ينفد</span>']))}</div>`}
+function secCashMini(R){const C=cashPos(),dr=drawInfo(agg('all'));return `<div class="card"><h3 style="margin-top:0">💵 الخزنة والسيولة</h3><div class="grid">${kpi('الكاش',M(C.cash),'s')}${kpi('البنك',M(C.bank),'s')}${kpi('فلوس بره (تطبيقات وسلف)',M(C.outside),'s')}${kpi('مستحق للموردين',M(C.pay),'s')}${kpi('التزامات 7 أيام',M(C.o7),C.o7>C.liquid?'neg':'s')}${kpi('المسحوبات (الفترة)',M(dr.d),dr.d>R.net?'neg':'s',P(dr.pct)+' من صافي الربح')}</div><div class="al ${C.after<0?'c':'i'}">${C.after<0?'⚠ السيولة لا تغطي التزامات 30 يومًا: عجز '+M(-C.after):'✓ السيولة تغطي التزامات 30 يومًا بفائض '+M(C.after)}</div><button class="b g sm" data-act="planGo" data-t="cash">افتح الخزنة</button></div>`}
+
+V.dash=()=>{const R=agg(),H=health(),al=alerts(),w1=win(1),w7=win(7),C=cashPos(),dr=drawInfo(R),plan=planActions(R);
  const days=[];for(let d=S.settings.period-1;d>=0;d--)days.push(daysAgo(d));const mx=Math.max(1,...days.map(d=>R.daily[d]||0));
  const bars=days.map((d,i)=>{const h=(R.daily[d]||0)/mx*90;return `<rect x="${i*10}" y="${100-h}" width="7" height="${h}" rx="2" fill="var(--brand)"><title>${d}: ${M(R.daily[d]||0)}</title></rect>`}).join('');
- const col=H.score>=75?'var(--ok)':H.score>=50?'var(--warn)':'var(--bad)';
- const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{})})).filter(x=>x.qty);
- const lst=(arr,fmt)=>arr.slice(0,3).map((x,i)=>`<div class="row" style="margin:2px 0;justify-content:space-between"><span>${i+1}. ${esc(x.r.name)}</span><b>${fmt(x)}</b></div>`).join('')||'<div class="note">لا توجد بيانات</div>';
- const byQ=rows.slice().sort((a,b)=>b.qty-a.qty),byP=rows.slice().sort((a,b)=>b.full-a.full);
- const pbox=(t,l,c)=>`<div class="card" style="margin:0"><div class="k" style="margin-bottom:6px;color:${c};font-weight:700">${t}</div>${l}</div>`;
- const pf=x=>M(x.full)+' · '+P(x.rev?x.full/x.rev*100:0);
- const nm=R.rev?R.net/R.rev:0;
- const opp=rows.map(x=>({...x,dp:.1*x.cm,nm2:(R.net+.1*x.cm)/(R.rev+.1*x.rev),up:x.cm/x.rev>nm})).sort((a,b)=>b.dp-a.dp);
- const ing=Object.entries(R.ingUse).sort((a,b)=>b[1]-a[1]).slice(0,6),ingT=Object.values(R.ingUse).reduce((a,v)=>a+v,0)||1;
  const worst=al.some(a=>a[0]==='c');
- return `<h2>لوحة المالك</h2><p class="sub">الوضع المالي الحقيقي، محسوب من الفواتير والوصفات والمبيعات والمصروفات المسجلة. ${per()}</p>
- <div class="grid">${kpi('مبيعات اليوم',M(w1.rev),'',N(w1.ord)+' طلب')}${kpi('مبيعات آخر 7 أيام',M(w7.rev),'',N(w7.ord)+' طلب')}${kpi('صافي مبيعات الفترة',M(R.rev))}${kpi('عدد الطلبات',N(R.orders))}${kpi('متوسط الفاتورة',M(R.avgTicket))}${kpi('طلبات ملغاة',N(R.canc),R.canc&&R.canc/(R.orders+R.canc)>.05?'neg':'',`قيمتها ${M(R.cancVal)} (${P(R.orders+R.canc?R.canc/(R.orders+R.canc)*100:0)} من الطلبات)`)}
- ${kpi('الخامات المستخدمة في المبيعات',M(R.cogs),'s',P(R.fcp)+' من المبيعات')}${kpi('عمولات + توصيل',M(R.comm+R.del),'s',P(R.commp)+' من المبيعات')}${kpi('المصروفات',M(R.fixed+R.varx),'s',P(R.rev?(R.fixed+R.varx)/R.rev*100:0)+' من المبيعات')}${kpi('صافي ربح المطعم',M(R.net),R.net>=0?'pos':'neg',R.rev?P(R.net/R.rev*100)+' من المبيعات':'')}${kpi('Labor Cost',P(R.labp),'s')}${kpi('قيمة المخزون',M(S.ing.reduce((a,i)=>a+i.stock*i.cost,0)),'s')}</div>
- <div class="card" style="border-top:4px solid ${worst?'var(--bad)':'var(--warn)'}"><h3 style="margin-top:0">⚠ التحذيرات (${al.filter(a=>a[0]!=='i').length})</h3>${al.map(a=>`<div class="al ${a[0]}">${a[1]}</div>`).join('')||'<div class="note">لا توجد تحذيرات</div>'}</div>
+ return `<h2>لوحة المالك</h2><p class="sub">اضغط على أي رقم لفتح تفاصيله. ${per()}</p>
+ <div class="grid">${kpi('مبيعات اليوم',M(w1.rev),'',N(w1.ord)+' طلب','sales1')}${kpi('مبيعات آخر 7 أيام',M(w7.rev),'',N(w7.ord)+' طلب','sales7')}${kpi('صافي مبيعات الفترة',M(R.rev),'','','salesP')}${kpi('عدد الطلبات',N(R.orders),'','','orders')}${kpi('متوسط الفاتورة',M(R.avgTicket),'','','ticket')}${kpi('طلبات ملغاة',N(R.canc),R.canc&&R.canc/(R.orders+R.canc)>.05?'neg':'',`قيمتها ${M(R.cancVal)} (${P(R.orders+R.canc?R.canc/(R.orders+R.canc)*100:0)} من الطلبات)`,'canc')}
+ ${kpi('الخامات المستخدمة في المبيعات',M(R.cogs),'s',P(R.fcp)+' من المبيعات','cogs')}${kpi('عمولات + توصيل',M(R.comm+R.del),'s',P(R.commp)+' من المبيعات','comm')}${kpi('المصروفات',M(R.fixed+R.varx),'s',P(R.rev?(R.fixed+R.varx)/R.rev*100:0)+' من المبيعات','exp')}${kpi('صافي ربح المطعم',M(R.net),R.net>=0?'pos':'neg',R.rev?P(R.net/R.rev*100)+' من المبيعات':'','net')}${kpi('Labor Cost',P(R.labp),'s','','labor')}${kpi('قيمة المخزون',M(S.ing.reduce((a,i)=>a+i.stock*i.cost,0)),'s','','stockv')}${kpi('السيولة (كاش+بنك)',M(C.liquid),'s','فلوس بره '+M(C.outside),'liquid')}${kpi('المسحوبات',M(dr.d),dr.d>R.net?'neg':'s',P(dr.pct)+' من صافي الربح','draw')}</div>
+ <div class="card" style="border-top:4px solid var(--brand)"><h3 style="margin-top:0">🚀 أهم إجراءات النهاردة</h3>${plan.top.slice(0,3).map(a=>`<div class="al ${a.l==='u'?'c':a.l==='m'?'':'i'}">${a.l==='u'?'🔴':a.l==='m'?'🟡':'🟢'} <b>${esc(a.t)}</b> ${a.imp>0?'<span class="pos">(+'+M(a.imp)+')</span>':''}</div>`).join('')||'<div class="note">الأداء جيد ✓</div>'}<div class="row"><b>إجمالي فرص تحسين الربح: ${M(plan.total)}</b><button class="b g sm" data-act="planGo" data-t="plan">عرض الخطة الكاملة ›</button></div></div>
+ <div class="card" style="border-top:4px solid ${worst?'var(--bad)':'var(--warn)'}"><h3 style="margin-top:0">⚠ التحذيرات والإنذار المبكر (${al.filter(a=>a[0]!=='i').length})</h3>${al.map(a=>`<div class="al ${a[0]}">${a[1]}</div>`).join('')||'<div class="note">لا توجد تحذيرات</div>'}</div>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(380px,1fr))">${secFlow(R)}${secLeak(R)}</div>
+ ${secForecast(R)}
  ${beCard(R)}
- <div class="grid" style="grid-template-columns:1fr 2fr"><div class="card"><div class="k" style="text-align:center">Restaurant Health Score</div><div class="score" style="border:10px solid ${col};color:${col}">${H.score}</div>
- <div style="text-align:center;font-weight:700;color:${col}">${H.score>=75?'صحة جيدة':H.score>=50?'تحتاج انتباه':'في خطر'}</div>
- <div class="note" style="margin:6px 0">الدرجة من 100: 75 فأكثر جيدة · 50–74 تحتاج انتباه · أقل من 50 خطر. تتكون من 5 عناصر، وتحت كل عنصر درجته ومعناه وما يجب فعله.</div>
- ${H.parts.map(p=>{const r=p.s/p.m,c=r>=.85?'var(--ok)':r>=.5?'var(--warn)':'var(--bad)';return `<div style="margin:10px 0"><div class="row" style="margin:0;justify-content:space-between"><b>${p.n}</b><span dir="ltr" style="color:${c};font-weight:700">${N(p.s,1)} / ${p.m}</span></div><div style="background:var(--soft);border-radius:6px"><div style="width:${r*100}%;background:${c};height:8px;border-radius:6px"></div></div><div class="note">${p.v}</div>${p.tip?`<div class="note" style="color:${c}">← ${p.tip}</div>`:''}</div>`}).join('')}</div>
- <div class="card"><div class="k">المبيعات اليومية</div><svg viewBox="0 0 ${days.length*10} 100" style="width:100%;height:170px" preserveAspectRatio="none">${bars}</svg></div></div>
- <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr))">${pbox('🔥 الأكثر مبيعًا',lst(byQ,x=>N(x.qty)+' وحدة'),'var(--ok)')}${pbox('🐌 الأقل مبيعًا',lst(byQ.slice().reverse(),x=>N(x.qty)+' وحدة'),'var(--bad)')}${pbox('💰 الأعلى ربحية (صافي · هامش)',lst(byP,pf),'var(--ok)')}${pbox('📉 الأقل ربحية (صافي · هامش)',lst(byP.slice().reverse(),pf),'var(--bad)')}</div>
- <div class="card"><h3 style="margin-top:0">💡 هل زيادة مبيعات صنف تحسّن الهامش؟</h3><div class="note">المصروفات الثابتة لا تزيد مع الطلبات الإضافية. الصنف الذي هامش مساهمته أعلى من هامش المطعم الصافي (${P(nm*100)}) يرفع الهامش العام كلما زادت مبيعاته. ما يلي يفترض زيادة 10% في مبيعات الصنف فقط (دون تكلفة تسويق إضافية).</div>
- <div class="tw"><table><tr><th>الصنف</th><th>هامش مساهمته</th><th>ربح إضافي عند +10%</th><th>هامش المطعم بعد الزيادة</th><th>الأثر على الهامش</th></tr>${opp.map(x=>`<tr><td><b>${esc(x.r.name)}</b></td><td>${P(x.cm/x.rev*100)}</td><td class="pos">+${M(x.dp)}</td><td>${P(x.nm2*100)}</td><td class="${x.up?'pos':'wr'}">${x.up?'↑ يرفع الهامش':'↓ يزيد الربح لكن يخفض النسبة'}</td></tr>`).join('')}</table></div></div>
- <div class="card"><h3 style="margin-top:0">الخامات المستخدمة في رقم المبيعات</h3><div class="note">لتحقيق مبيعات ${M(R.rev)} استُهلكت خامات وتغليف بقيمة <b>${M(R.cogs)}</b> (${P(R.fcp)}). أكثر الخامات استهلاكًا بالقيمة:</div>
- <table>${ing.map(([id,v])=>`<tr><td>${esc(ING(id)?.name)}</td><td>${M(v)}</td><td>${P(v/ingT*100)}</td></tr>`).join('')}</table></div>
+ <div class="grid" style="grid-template-columns:1fr 2fr">${secHealth(H)}<div class="card"><div class="k">المبيعات اليومية</div><svg viewBox="0 0 ${days.length*10} 100" style="width:100%;height:170px" preserveAspectRatio="none">${bars}</svg></div></div>
+ ${secCashMini(R)}
+ ${secProducts(R)}
+ ${secOpp(R)}
+ ${secChannels(R)}
+ ${secBranches()}
+ ${secStockPred()}
+ ${secSupMini()}
+ ${secFuture(R)}
+ <div class="card"><h3 style="margin-top:0">⏱ إنتاجية الموظفين</h3>${(()=>{const p=empProd(S.settings.br||'all');return `<div class="grid">${kpi('تكلفة الموظف/يوم',M(p.perDay),'s')}${kpi('تكلفة العمالة لكل طلب',N(p.laborOrder,1)+' ج.م','s')}${kpi('مبيعات لكل ساعة عمل',M(p.salesHour),'s')}${kpi('Labor من المبيعات',P(p.labp),p.labp>25?'neg':'s')}</div><div class="al ${p.exc?'c':'i'}">${p.exc?`عدد موظفي التشغيل ${p.ops.length} أكبر من احتياج الطلبات (${p.req}): زيادة ${p.exc} بتكلفة ${M(p.saving)} شهريًا`:'عدد موظفي التشغيل مناسب لحجم الطلبات'}</div>`})()}<button class="b g sm" data-act="planGo" data-t="pay">التفاصيل لكل فرع</button></div>
+ <div class="card"><h3 style="margin-top:0">الخامات المستخدمة في رقم المبيعات</h3><div class="note">لتحقيق مبيعات ${M(R.rev)} استُهلكت خامات وتغليف بقيمة <b>${M(R.cogs)}</b> (${P(R.fcp)}).</div>${tbl(['الخامة','القيمة','النسبة'],Object.entries(R.ingUse).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([id,v])=>[esc(ING(id)?.name),M(v),P(v/(Object.values(R.ingUse).reduce((a,x)=>a+x,0)||1)*100)]))}</div>
  <div class="card"><h3 style="margin-top:0">قاعدة التقسيم 30 / 30 / 30 / 10</h3>${benchTable(R)}</div>
- <div class="card"><h3 style="margin-top:0">ربحية القنوات</h3><div class="tw"><table><tr><th>القناة</th><th>مبيعات</th><th>تكلفة خامات</th><th>عمولة</th><th>توصيل</th><th>مساهمة</th><th>%</th></tr>
- ${Object.keys(S.channels).map(k=>{const b=R.byCh[k],cm=b.rev-b.cogs-b.comm-b.del;return `<tr><td>${S.channels[k].name}</td><td>${M(b.rev)}</td><td>${M(b.cogs)}</td><td>${M(b.comm)}</td><td>${M(b.del)}</td><td class="${cm<0?'neg':''}">${M(cm)}</td><td>${b.rev?P(cm/b.rev*100):'-'}</td></tr>`}).join('')}</table></div></div>
  <div class="card"><h3 style="margin-top:0">مستويات تكلفة كل منتج وربحيته</h3>${prodFull(R)}</div>`};
+A={};A.dash_init=()=>{document.querySelectorAll('.seg').forEach(c=>setTimeout(()=>{c.style.strokeDasharray=c.dataset.len+' '+(100-c.dataset.len)},80))};
+
+V.plan=()=>{const R=agg(),P0=planActions(R);const lv={u:['🔴 عاجل','var(--bad)'],m:['🟡 متوسط','var(--warn)'],g:['🟢 تحسين','var(--ok)']};
+ const row=a=>`<tr><td style="color:${lv[a.l||'g'][1]};font-weight:700;white-space:nowrap">${lv[a.l||'g'][0]}</td><td><b>${esc(a.t)}</b></td><td class="note">${esc(a.why)}</td><td class="pos"><b>${a.imp>0?'+'+M(a.imp):'—'}</b></td><td><button class="b g sm" data-act="planGo" data-t="${a.go}">افتح</button></td></tr>`;
+ return `<h2>🚀 TODAY'S ACTION PLAN</h2><p class="sub">ماذا تفعل اليوم لتحقق ربحًا أكبر؟ بدل 100 رقم، النظام يختار لك أهم 5 إجراءات. ${per()}</p>
+ <div class="card"><table><tr><th>الأولوية</th><th>الإجراء</th><th>السبب</th><th>التأثير المتوقع شهريًا</th><th></th></tr>${P0.top.map(row).join('')||'<tr><td colspan=5 class="note">لا توجد إجراءات حاليًا — الأداء جيد ✓</td></tr>'}</table>
+ <div class="al i" style="margin-top:10px;font-size:17px"><b>إجمالي فرص تحسين الربح: ${M(P0.total)} شهريًا</b></div>
+ <div class="note">التأثير تقدير من بياناتك وافتراضات بسيطة (مثلًا: رفع السعر 5% يفقد 30% من أثره بسبب انخفاض الطلب، وتوفير نصف الهالك). ليس وعدًا بنتيجة. الإجراءات الحرجة (🔴) تُعرض أولًا حتى لو تأثيرها المالي صغير.</div></div>
+ ${P0.rest.length?`<details class="card"><summary style="cursor:pointer;color:var(--brand);font-weight:700">باقي الفرص (${P0.rest.length})</summary><table>${P0.rest.map(a=>row({...a,l:a.u?'u':'g'})).join('')}</table></details>`:''}`};
+
+// ---- cash
+V.cash=()=>{const C=cashPos(),R=agg('all'),dr=drawInfo(R),F=msForecast(R);const rsv=.1*R.rev,left=R.net-dr.d;
+ return `<h2>💵 الخزنة والسيولة (Cash Position)</h2><p class="sub">المطعم ممكن يكون رابح محاسبيًا لكن يعاني من نقص سيولة. هنا ترى الكاش الفعلي والفلوس بره والتزاماتك.</p>
+ <div class="grid">${kpi('الكاش',M(C.cash),'s')}${kpi('البنك',M(C.bank),'s')}${kpi('إجمالي السيولة',M(C.liquid))}${kpi('فلوس بره',M(C.outside),'s','تطبيقات '+M(C.rec)+' · سلف '+M(C.adv)+' · أخرى '+M(C.outs))}${kpi('مستحق للموردين',M(C.pay),'s')}${kpi('التزامات 7 أيام',M(C.o7),C.o7>C.liquid?'neg':'s')}${kpi('التزامات 30 يومًا',M(C.o30),'s','موردون+مرتبات+إيجار+مصروفات')}${kpi('الصافي بعد الالتزامات',M(C.after),C.after<0?'neg':'pos')}</div>
+ <div class="card" style="border-top:4px solid ${C.after<0?'var(--bad)':'var(--ok)'}"><h3 style="margin-top:0">هل السيولة تكفي الشهر القادم؟</h3>
+ <div class="al ${C.after<0?'c':'i'}">${C.after<0?`⚠ لا تكفي: الكاش والبنك والمستحقات ${M(C.liquid+C.outside)} مقابل التزامات 30 يومًا ${M(C.o30)} — عجز ${M(-C.after)} لن يُغطّى إلا بمبيعات الشهر.`:`✓ تكفي: السيولة والمستحقات ${M(C.liquid+C.outside)} تغطي التزامات 30 يومًا ${M(C.o30)} بفائض ${M(C.after)}.`}</div>
+ <div class="note">الكاش والبنك وحدهما يغطيان ${isFinite(C.coverDays)?N(C.coverDays):'-'} يومًا من المرتبات والإيجار والمصروفات الثابتة (بدون أي مبيعات جديدة). صافي الربح المتوقع هذا الشهر ${M(F.net)}.</div></div>
+ <div class="card"><h3 style="margin-top:0">تحديث الأرصدة</h3><div class="row"><label>الكاش بالخزنة<input type="number" id="cc" value="${S.cash.cash}"></label><label>الرصيد بالبنك<input type="number" id="cb" value="${S.cash.bank}"></label><button class="b" data-act="saveCash">تحديث</button></div><div class="note">مبيعات الصالة والمباشر تُضاف للكاش تلقائيًا عند تسجيلها، والمصروفات والمسحوبات وسداد الموردين تُخصم من المصدر المختار.</div></div>
+ <div class="card"><h3 style="margin-top:0">🟠 مستحقات عند تطبيقات التوصيل (${M(C.rec)})</h3>${tbl(['تاريخ البيع','الفرع','صافي بعد العمولة','موعد التحصيل المتوقع'],C.recRows.slice(-12).reverse().map(r=>[r.date,esc(brN(r.br)),M(r.amt),r.due]))}<div class="note">مبيعات التطبيقات خلال آخر ${S.settings.settleDays||7} أيام (فترة التسوية) بعد العمولة.</div></div>
+ <div class="card"><h3 style="margin-top:0">🔵 فلوس بره أخرى</h3>${tbl(['البند','المبلغ',''],[['سلف الموظفين (من الرواتب)',M(C.adv),''],...S.outside.map(o=>[esc(o.name),M(o.amount),`<button class="b r sm" data-act="delOut" data-id="${o.id}">×</button>`])])}<div class="row"><label>البند<input id="on"></label><label>المبلغ<input type="number" id="oa"></label><button class="b g" data-act="addOut">إضافة</button></div></div>
+ <div class="card"><h3 style="margin-top:0">🔴 مستحقات الموردين (${M(C.pay)})</h3>${C.unpaid.length?`<div class="tw"><table><tr><th>المورد</th><th>تاريخ الفاتورة</th><th>الاستحقاق</th><th>المبلغ</th><th>الحالة</th><th></th></tr>${C.unpaid.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).map(v=>`<tr><td>${esc(v.supplier)}</td><td>${v.date}</td><td>${v.dueDate}</td><td>${M(invTotal(v))}</td><td class="${v.dueDate<today()?'neg':v.dueDate<=daysAhead(7)?'wr':''}">${v.dueDate<today()?'متأخر':v.dueDate<=daysAhead(7)?'خلال 7 أيام':'لاحقًا'}</td><td><select data-ps="${v.id}"><option value="cash">من الكاش</option><option value="bank">من البنك</option></select> <button class="b sm" data-act="payInv" data-id="${v.id}">تسديد</button></td></tr>`).join('')}</table></div>`:'<div class="note">لا توجد مستحقات</div>'}<div class="note">الفواتير المعتمدة من صفحة الفواتير تتحول لمستحقات تلقائيًا حسب شروط دفع المورد.</div></div>
+ <div class="card"><h3 style="margin-top:0">📅 التزامات الـ7 أيام القادمة (${M(C.o7)})</h3>${tbl(['البند','التاريخ','المبلغ'],C.obl7.map(o=>[esc(o.n),o.d,M(o.a)]))}<div class="note">${C.o7>C.liquid?'⚠ أكبر من السيولة المتاحة.':'السيولة الحالية تغطيها.'}</div></div>
+ <div class="card"><h3 style="margin-top:0">🏧 المسحوبات وتأثيرها على المطعم</h3>
+ <div class="grid">${kpi('مسحوبات الفترة',M(dr.d),dr.d>R.net?'neg':'s')}${kpi('من صافي الربح',P(dr.pct),dr.pct>70?'neg':'s')}${kpi('الربح بعد المسحوبات',M(left),left<0?'neg':'pos')}${kpi('احتياطي مستهدف 10% من المبيعات',M(rsv),left>=rsv?'pos':'wr',left>=rsv?'متحقق':'غير متحقق')}</div>
+ <div class="al ${dr.d>R.net?'c':dr.pct>70?'':'i'}">${dr.d>R.net?'⚠ المسحوبات أكبر من صافي الربح: تُستهلك من رأس مال المطعم وتضعف السيولة.':dr.pct>70?'المسحوبات تأكل أغلب الربح ولا يتبقى للاحتياطي والتطوير.':'المسحوبات ضمن حدود آمنة، ويتبقى ربح للاحتياطي والتطوير.'}</div>
+ <div class="note">المسحوبات ليست مصروف تشغيل فلا تدخل في تكلفة الأصناف ولا نقطة التعادل، لكنها تُخصم من الكاش وتقلل الربح المتبقي في المطعم.</div>
+ <div class="row"><label>التاريخ<input type="date" id="dd" value="${today()}"></label><label>المبلغ<input type="number" id="da"></label><label>من<select id="ds"><option value="cash">الكاش</option><option value="bank">البنك</option></select></label><label>ملاحظة<input id="dn"></label><button class="b" data-act="addDraw">تسجيل مسحوبات</button></div>
+ ${tbl(['التاريخ','المبلغ','المصدر','ملاحظة',''],S.draw.slice().reverse().map(x=>[x.date,M(x.amount),x.src==='cash'?'كاش':'بنك',esc(x.note),`<button class="b r sm" data-act="delDraw" data-id="${x.id}">×</button>`]))}</div>
+ <div class="card"><h3 style="margin-top:0">الربح المحاسبي مقابل السيولة</h3><div class="note">صافي الربح المحاسبي ${M(R.net)} لكن منه ${M(C.rec)} لم يتحصل بعد من التطبيقات، و${M(C.pay)} مستحقة للموردين لم تُسدد، و${M(dr.d)} خرجت مسحوبات. لذلك قد يظهر ربح بينما الكاش أقل.</div></div>`};
+
+// ---- suppliers
+V.sup=()=>{const I=supInfo();const best=Object.entries(I.sc).sort((a,b)=>b[1].value-a[1].value)[0];
+ return `<h2>🤝 ذكاء الموردين (Supplier Intelligence)</h2><p class="sub">قارن الأسعار، اكتشف الارتفاعات، واعرف كام توفر لو اشتريت من الأفضل.</p>
+ <div class="grid">${kpi('توفير شهري محتمل',M(I.save),I.save>0?'pos':'s','لو اشتريت كل خامة من الأرخص')}${kpi('أفضل مورد جودة/سعر',best?esc(best[0]):'-','s','تقييم ÷ مؤشر السعر')}</div>
+ <div class="card"><h3 style="margin-top:0">تقييم الموردين</h3>${tbl(['المورد','تقييم الجودة (1-5)','مدة السداد (يوم)','عدد الخامات الأرخص','مؤشر السعر (1 = الأرخص)','عدد الارتفاعات','جودة مقابل السعر','مستحق عليك'],S.sup.map(s=>{const c=I.sc[s.name];return [`<b>${esc(s.name)}</b>`,`<input type="number" step="0.5" min="1" max="5" data-srate="${esc(s.name)}" value="${s.rating}" style="width:70px">`,`<input type="number" data-sterms="${esc(s.name)}" value="${s.terms}" style="width:70px">`,c.cheap,N(c.idx,2),`<span class="${c.rises?'wr':''}">${c.rises}</span>`,`<b class="${best&&best[0]===s.name?'pos':''}">${N(c.value,2)}</b>`,M(S.inv.filter(v=>v.supplier===s.name&&v.status==='approved'&&v.paid===false).reduce((a,v)=>a+invTotal(v),0))]}))}</div>
+ <div class="card"><h3 style="margin-top:0">أسعار كل خامة عند كل مورد (للوحدة الأساسية)</h3><div class="tw"><table><tr><th>الخامة</th><th>المورد الحالي</th>${S.sup.map(s=>`<th>${esc(s.name)}</th>`).join('')}<th>الأرخص</th><th>توفير شهري</th><th></th></tr>
+ ${I.rows.map(r=>`<tr><td><b>${esc(r.g.name)}</b></td><td>${esc(r.g.supplier)}<div class="note">${N(r.g.cost,3)}</div></td>${S.sup.map(s=>{const q=r.qs.find(x=>x.sup===s.name);if(!q)return '<td>-</td>';const ch=q.prev?(q.price-q.prev)/q.prev*100:0;return `<td><input type="number" step="any" style="width:80px" data-qt="${r.g.id}:${esc(s.name)}" value="${q.price}"><div class="note ${ch>=5?'neg':ch<=-5?'pos':''}">${ch>=0.5?'↑':ch<=-0.5?'↓':'='} ${N(Math.abs(ch),1)}%</div></td>`}).join('')}<td><b class="pos">${esc(r.best.sup)}</b><div class="note">${N(r.best.price,3)}</div></td><td class="${r.sv>0?'pos':''}">${M(r.sv)}</td><td>${r.best.sup!==r.g.supplier?`<button class="b g sm" data-act="setSup" data-ing="${r.g.id}" data-sup="${esc(r.best.sup)}">حوّل للأرخص</button>`:'✓'}</td></tr>`).join('')}</table></div>
+ <div class="note">تعديل السعر هنا يسجّل السعر السابق ويحسب نسبة التغير. «حوّل للأرخص» يغيّر المورد المعتمد للخامة؛ تتحدث التكلفة فعليًا عند اعتماد أول فاتورة منه.</div></div>`};
 
 // ---- invoices
 V.inv=()=>{if(!draft)draft={supplier:'مورد A',date:today(),lines:[{ing:S.ing[0].id,qty:1,unit:1000,total:0}],img:null};
@@ -272,14 +471,19 @@ V.inv=()=>{if(!draft)draft={supplier:'مورد A',date:today(),lines:[{ing:S.ing
  <td>${v.status==='pending'?`<button class="b sm" data-act="appr" data-id="${v.id}">اعتماد</button> <button class="b r sm" data-act="rej" data-id="${v.id}">رفض</button>`:''}</td></tr>`).join('')||'<tr><td colspan=6 class="note">لا توجد فواتير</td></tr>'}</table></div></div>`};
 
 // ---- stock
-V.stock=()=>`<h2>الخامات والمخزون</h2><p class="sub">الرصيد النظري يتحدث من الفواتير المعتمدة والمبيعات. أدخل الجرد الفعلي لمقارنة الفروقات.</p>
- <div class="card"><div class="tw"><table><tr><th>الخامة</th><th>الوحدة</th><th>الرصيد النظري</th><th>الحد الأدنى</th><th>تكلفة الوحدة الخام</th><th>Yield %</th><th>تكلفة الوحدة الصالحة</th><th>المورد</th><th>جرد فعلي</th></tr>
- ${S.ing.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td>${UL[i.unit]}</td><td class="${i.stock<=i.min?'neg':''}">${N(i.stock)}</td><td>${N(i.min)}</td><td>${N(i.cost,3)}</td><td><input type="number" style="width:70px" data-ey="${i.id}" value="${i.yield}"></td><td>${N(unitCost(i),3)}</td><td>${esc(i.supplier)}</td><td><input type="number" data-cnt="${i.id}" placeholder="${N(i.stock)}"></td></tr>`).join('')}</table></div>
+V.stock=()=>{const po=poList(),pr=stockPred(),wl=S.waste.slice().reverse().slice(0,15);
+ return `<h2>الخامات والمخزون</h2><p class="sub">الرصيد النظري يتحدث من الفواتير والمبيعات. حدّد الحد الأدنى لكل خامة؛ عند الوصول إليه يظهر تحذير وتُكتب طلبية بالكمية الناقصة تلقائيًا.</p>
+ ${Object.keys(po).length?`<div class="card" style="border-top:4px solid var(--bad)"><h3 style="margin-top:0">🛒 طلبية الشراء المقترحة (خامات نزلت عن الحد الأدنى)</h3>${Object.entries(po).map(([s,l])=>`<div class="card" style="margin:8px 0"><b>${esc(s)}</b><table>${l.map(x=>`<tr><td>${esc(x.g.name)}</td><td>الرصيد ${fq(x.g.stock,x.g.unit)}</td><td>الحد الأدنى ${fq(x.g.min,x.g.unit)}</td><td><b>اطلب ${fq(x.qty,x.g.unit)}</b></td></tr>`).join('')}</table><div class="row"><button class="b sm" data-act="copyPO" data-s="${esc(s)}">نسخ الطلبية</button><button class="b g sm" data-act="waPO" data-s="${esc(s)}">إرسال واتساب</button></div></div>`).join('')}<div class="note">الكمية = الحد الأدنى − الرصيد الحالي، وتتحدث تلقائيًا عند كل بيع.</div></div>`:'<div class="card"><span class="pos">✓ كل الخامات فوق الحد الأدنى — لا توجد طلبية مطلوبة</span></div>'}
+ <div class="card"><div class="tw"><table><tr><th>الخامة</th><th>الوحدة</th><th>الرصيد النظري</th><th>الحد الأدنى (قابل للتعديل)</th><th>الحالة</th><th>تكلفة الوحدة الخام</th><th>Yield %</th><th>تكلفة الوحدة الصالحة</th><th>المورد</th><th>جرد فعلي</th></tr>
+ ${S.ing.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td>${UL[i.unit]}</td><td class="${i.stock<=i.min?'neg':''}">${N(i.stock)}</td><td><input type="number" style="width:90px" data-min="${i.id}" value="${i.min}"></td><td class="${i.stock<i.min?'neg':i.stock===i.min?'wr':'pos'}">${i.stock<i.min?'تحت الحد — اطلب '+fq(i.min-i.stock,i.unit):i.stock===i.min?'عند الحد':'آمن'}</td><td>${N(i.cost,3)}</td><td><input type="number" style="width:70px" data-ey="${i.id}" value="${i.yield}"></td><td>${N(unitCost(i),3)}</td><td>${esc(i.supplier)}</td><td><input type="number" data-cnt="${i.id}" placeholder="${N(i.stock)}"></td></tr>`).join('')}</table></div>
  <div class="row" style="margin-top:10px"><button class="b" data-act="count">اعتماد الجرد</button></div></div>
+ <div class="card"><h3 style="margin-top:0">📦 توقع نفاد المخزون (Smart Inventory Prediction)</h3>${tbl(['الخامة','الاستهلاك اليومي','الرصيد','تنفد خلال','تاريخ النفاد','اشتري للأسبوع','هل يكفي الأسبوع؟'],pr.filter(x=>x.dq>0).map(x=>[`<b>${esc(x.g.name)}</b>`,fq(x.dq,x.g.unit),fq(x.g.stock,x.g.unit),`<span class="${x.days<3?'neg':x.days<7?'wr':'pos'}">${N(x.days,1)} يوم</span>`,x.date,x.need7>0?'<b>'+fq(x.need7,x.g.unit)+'</b>':'—',x.days>=7+(S.settings.lead||2)?'<span class="pos">نعم</span>':'<span class="neg">لا</span>']))}<div class="note">من متوسط الاستهلاك الفعلي لآخر ${S.settings.period} يوم (كل الفروع) مع مدة توريد ${S.settings.lead||2} يوم.</div></div>
+ <div class="card"><h3 style="margin-top:0">🗑 تسجيل هالك</h3><div class="row"><label>الفرع<select id="wb">${S.branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></label><label>الخامة<select id="wi">${S.ing.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></label><label>الكمية (وحدة أساسية)<input type="number" id="wq"></label><label>السبب<input id="wr" value="تلف"></label><button class="b" data-act="addWaste">تسجيل</button></div>
+ ${tbl(['التاريخ','الفرع','الخامة','الكمية','القيمة','السبب',''],wl.map(w=>[w.date,esc(brN(w.br)),esc(ING(w.ing)?.name),fq(w.qty,ING(w.ing)?.unit),M(w.qty*(ING(w.ing)?.cost||0)),esc(w.reason),`<button class="b r sm" data-act="delWaste" data-id="${w.id}">×</button>`]))}<div class="note">الهالك يُخصم من المخزون ويُحسب خسارة في الأرباح وفي تسريب الأرباح ومقارنة الفروع.</div></div>
  <div class="card"><h3 style="margin-top:0">إضافة خامة</h3><div class="row"><label>الاسم<input id="ni_n"></label><label>الوحدة<select id="ni_u"><option value="g">جم</option><option value="ml">مل</option><option value="pc">قطعة</option></select></label><label>تكلفة الوحدة<input type="number" step="any" id="ni_c"></label><label>الحد الأدنى<input type="number" id="ni_m"></label><label>المورد<input id="ni_s" value="مورد A"></label><button class="b" data-act="addIng">إضافة</button></div></div>
  <div class="card"><h3 style="margin-top:0">سجل الجرد والفروقات</h3><div class="tw"><table><tr><th>التاريخ</th><th>الخامة</th><th>نظري</th><th>فعلي</th><th>الفرق</th><th>قيمة الفرق</th></tr>
  ${S.counts.slice().reverse().slice(0,30).map(c=>`<tr><td>${c.date}</td><td>${esc(c.name)}</td><td>${N(c.theo)}</td><td>${N(c.act)}</td><td class="${c.diff<0?'neg':''}">${N(c.diff)} (${P(c.pct)})</td><td>${M(c.val)}</td></tr>`).join('')||'<tr><td colspan=6 class="note">لا يوجد جرد</td></tr>'}</table></div>
- <div class="note">الفرق السالب = عجز يستوجب التحقيق: هالك؟ صرف غير مسجل؟ خطأ وصفة؟ خطأ جرد؟</div></div>`;
+ <div class="note">الفرق السالب = عجز يستوجب التحقيق: هالك؟ صرف غير مسجل؟ خطأ وصفة؟ خطأ جرد؟</div></div>`};
 
 // ---- recipes
 V.rec=()=>{const R=agg();return `<h2>الوصفات وتكلفة الجرام</h2><p class="sub">التكلفة المباشرة دقيقة: آخر تكلفة معتمدة للخامة مع Yield، والخامات والتغليف منفصلان. التكاليف غير المباشرة تُوزع بمحركات التكلفة الحقيقية.</p>
@@ -317,7 +521,7 @@ const ECATS=['إيجار','مرتبات','كهرباء ومياه وغاز','ت�
 V.exp=()=>{const ex=S.exp.slice().sort((a,b)=>b.date.localeCompare(a.date));
  const R0=agg();const by={...R0.byCat};
  return `<h2>المصروفات</h2><p class="sub">ثابتة ومتغيرة وتشغيلية، تدخل مباشرة في قائمة الأرباح والخسائر ونقطة التعادل. المرتبات تُحسب تلقائيًا من تبويب الرواتب. مصروف «المركز المشترك» يُوزع على الفروع بحصة مبيعاتها.</p>
- <div class="card"><div class="row"><label>التاريخ<input type="date" id="ed" value="${today()}"></label><label>الفرع<select id="eb"><option value="">مشترك (المركز)</option>${S.branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></label><label>البند<select id="ec">${ECATS.filter(c=>c!=='مرتبات').map(c=>`<option>${c}</option>`).join('')}</select></label><label>النوع<select id="et"><option value="fixed">ثابت</option><option value="variable">متغير</option></select></label><label>المبلغ<input type="number" id="ea"></label><label>ملاحظة<input id="en"></label><label>توزع على الأصناف<input type="checkbox" id="ei" checked style="width:auto;height:20px"></label><button class="b" data-act="addExp">إضافة</button></div></div>
+ <div class="card"><div class="row"><label>التاريخ<input type="date" id="ed" value="${today()}"></label><label>الفرع<select id="eb"><option value="">مشترك (المركز)</option>${S.branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></label><label>البند<select id="ec">${ECATS.filter(c=>c!=='مرتبات').map(c=>`<option>${c}</option>`).join('')}</select></label><label>النوع<select id="et"><option value="fixed">ثابت</option><option value="variable">متغير</option></select></label><label>المبلغ<input type="number" id="ea"></label><label>ملاحظة<input id="en"></label><label>مدفوع من<select id="ep"><option value="cash">الكاش</option><option value="bank">البنك</option><option value="none">غير مدفوع</option></select></label><label>توزع على الأصناف<input type="checkbox" id="ei" checked style="width:auto;height:20px"></label><button class="b" data-act="addExp">إضافة</button></div></div>
  <div class="card"><h3 style="margin-top:0">توزيع المصروفات (${S.settings.period} يوم)</h3>${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="row" style="margin:3px 0"><span style="width:160px">${k}</span><div style="flex:1;background:var(--soft);border-radius:6px"><div style="width:${v/Math.max(...Object.values(by))*100}%;background:var(--brand);height:14px;border-radius:6px"></div></div><b style="width:110px">${M(v)}</b><span class="${R0.rev&&v/R0.rev*100>limOf(k)?'neg':'pos'}" style="width:210px;font-size:13px">${R0.rev?P(v/R0.rev*100):'-'} من المبيعات (الحد ${limOf(k)}%)</span></div>`).join('')}</div>
  <div class="card"><div class="tw"><table><tr><th>التاريخ</th><th>البند</th><th>الفرع</th><th>النوع</th><th>التوزيع</th><th>المبلغ</th><th>ملاحظة</th><th></th></tr>${ex.map(e=>`<tr><td>${e.date}</td><td>${esc(e.cat)}</td><td>${esc(brN(e.br))}</td><td>${e.type==='fixed'?'ثابت':'متغير'}</td><td>${e.ind===false?'مباشر':'غير مباشر (يوزع)'}</td><td>${M(e.amount)}</td><td>${esc(e.note)}</td><td><button class="b r sm" data-act="delExp" data-id="${e.id}">×</button></td></tr>`).join('')}</table></div></div>`};
 
@@ -363,12 +567,32 @@ V.pay=()=>{const br=S.settings.br||'all';const em=S.emp.filter(e=>br==='all'||e.
  <div class="note">الإضافي = ساعة × (الأساسي÷30÷8) × 1.5. الغياب = يوم × (الأساسي÷30). السلف تُخصم من صافي المدفوع ولا تدخل في تكلفة الشركة. تكلفة الفترة = الشهري × ${S.settings.period}/30.</div>
  <div class="card"><h3 style="margin-top:0">تكلفة العمالة لكل فرع</h3><table><tr><th>الفرع</th><th>موظفون</th><th>تكلفة شهرية</th><th>Labor % من المبيعات</th></tr>${S.branches.map(b=>{const l=S.emp.filter(e=>e.br===b.id);return `<tr><td>${esc(b.name)}</td><td>${l.length}</td><td>${M(l.reduce((a,e)=>a+empCost(e),0))}</td><td>${P(agg(b.id).labp)}</td></tr>`}).join('')}<tr><td>المركز (إدارة)</td><td>${S.emp.filter(e=>!e.br).length}</td><td>${M(S.emp.filter(e=>!e.br).reduce((a,e)=>a+empCost(e),0))}</td><td>يوزع على الفروع</td></tr></table></div>
  <div class="card"><h3 style="margin-top:0">إضافة موظف</h3><div class="row"><label>الاسم<input id="en1"></label><label>الوظيفة<input id="en2" value="طباخ"></label><label>الفرع<select id="en3"><option value="">المركز</option>${S.branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></label><label>الأساسي<input type="number" id="en4"></label><label>البدلات<input type="number" id="en5" value="0"></label><button class="b" data-act="addEmp">إضافة</button></div>
- <div class="row"><label>تأمينات صاحب العمل % من الأساسي<input type="number" id="insp" value="${S.settings.ins||0}"></label></div></div>`};
+ <div class="row"><label>تأمينات صاحب العمل % من الأساسي<input type="number" id="insp" value="${S.settings.ins||0}"></label></div></div>
+ ${empProdBlock()}`};
 
 // ---- AI advisor (rule-based on engine)
 let chat=[];
 function answer(q){const R=agg();const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{qty:0,rev:0,cm:0})})).sort((a,b)=>b.cm-a.cm);
  const ql=q.toLowerCase();
+ if(/ليه.*(قلت|قل |نزل|انخفض|تراجع)|(قلت|نزلت|انخفضت|تراجعت).*(ارباح|أرباح|ربح)/.test(ql)){const c=winAgg(daysAgo(14),today()),pv=winAgg(daysAgo(29),daysAgo(15)),cm=x=>x.rev-x.cogs-x.comm-x.del,cmr0=pv.rev?cm(pv)/pv.rev:0;
+   const ds=[['حجم المبيعات',(c.rev-pv.rev)*cmr0],['تكلفة الخامات',-((c.cogs/(c.rev||1))-(pv.cogs/(pv.rev||1)))*c.rev],['العمولات والتوصيل',-(((c.comm+c.del)/(c.rev||1))-((pv.comm+pv.del)/(pv.rev||1)))*c.rev]].sort((a,b)=>a[1]-b[1]);
+   return `آخر 15 يومًا مقابل 15 قبلها: المبيعات ${M(c.rev)} مقابل ${M(pv.rev)} (${P(pv.rev?(c.rev-pv.rev)/pv.rev*100:0)})، تكلفة الخامات ${P(c.rev?c.cogs/c.rev*100:0)} مقابل ${P(pv.rev?pv.cogs/pv.rev*100:0)}، متوسط الفاتورة ${M(c.orders?c.rev/c.orders:0)} مقابل ${M(pv.orders?pv.rev/pv.orders:0)}. المساهمة قبل الثابتة: ${M(cm(c))} مقابل ${M(cm(pv))}. ${ds[0][1]<-1?'أكبر سبب في النزول: <b>'+ds[0][0]+'</b> ('+M(ds[0][1])+')':'لا يوجد تراجع واضح؛ الربح مستقر أو أفضل'}. المصروفات الثابتة لم تتغير. <span class="note">المصدر: المبيعات الفعلية لآخر 30 يومًا.</span>`}
+ if(/(قلل|أقلل|اقلل|خفض|اخفض|اشيل|أشيل).*(موظف|عمال|عامل)|(موظفين|عمال).*(قلل|اقلل|أقلل|خفض)/.test(ql)){const n=+(ql.match(/\d+/)||[1])[0],ep=empProd(S.settings.br||'all'),avg=ep.ops.length?ep.ops.reduce((a,e)=>a+empCost(e),0)/ep.ops.length:0,left=Math.max(0,ep.ops.length-n);
+   return `تخفيض ${n} موظف تشغيل يوفر نحو <b>${M(n*avg)}</b> شهريًا (متوسط تكلفة الموظف ${M(avg)}). يتبقى ${left} موظف مقابل احتياج الطلبات ${ep.req}: ${left>=ep.req?'كافٍ حسب السعة المفترضة':'⚠ أقل من الاحتياج وسيتأثر زمن التحضير والخدمة'}.`}
+ if(/(ازود|أزود|ارفع|أرفع|زود).*(سعر|أسعار|اسعار|المنيو)|(سعر|أسعار|اسعار|المنيو).*(ازود|أزود|ارفع|أرفع)/.test(ql)){const pc=+(ql.match(/\d+/)||[5])[0],pf=1+pc/100,vf=1-pc*.6/100,n1=R.rev*pf*vf-R.cogs*vf-R.comm*pf*vf-R.del*vf-R.varx-R.fixed-R.shrink;
+   return `لو رفعت أسعار المنيو ${pc}% (مع افتراض فقد ${P(pc*.6)} من الطلبات): صافي الربح من ${M(R.net)} إلى <b>${M(n1)}</b> (${n1>=R.net?'+':''}${M(n1-R.net)}). ${n1>R.net?'الزيادة مجدية؛ ابدأ بالأصناف الأكثر مبيعًا وهامشها ضعيف.':'غير مجدية بهذا الافتراض.'} <span class="note">افتراض مرونة الطلب 0.6.</span>`}
+ if(/(افتح|أفتح|فتح).*فرع|فرع جديد/.test(ql)){const k=K(),rs=S.branches.map(b=>agg(b.id)).filter(x=>x.rev),avgNet=rs.reduce((a,x)=>a+x.net,0)/(rs.length||1)*k,avgFix=rs.reduce((a,x)=>a+x.fixed+x.shrink,0)/(rs.length||1)*k,C=cashPos(),lossy=rs.filter(x=>x.net<0).length,need=avgFix*3;
+   return `متوسط صافي ربح الفرع الحالي ${M(avgNet)} شهريًا وتكاليفه الثابتة ${M(avgFix)}. الفرع الجديد عادةً يخسر أول 3 شهور (تقدير ${M(avgFix*1.5)} لو بلغ نصف المبيعات). السيولة ${M(C.liquid)} ${C.liquid>=need?'تغطي':'لا تغطي'} 3 شهور من تكاليفه (${M(need)}). ${lossy?'⚠ عندك '+lossy+' فرع يخسر؛ أصلحه أولًا. ':''}<b>${C.liquid>=need&&!lossy&&avgNet>0?'التوصية: ممكن بشرط دراسة الموقع.':'التوصية: لا تفتح الآن وركّز على تحسين الفروع الحالية.'}</b>`}
+ if(/(اوقف|أوقف|وقف|اقفل|أقفل).*(تطبيق|منصة|طلبات)|(تطبيق|منصة).*(اوقف|أوقف|وقف)/.test(ql)){const a=R.byCh.app,d=R.byCh.direct;if(!a||!a.rev)return 'لا توجد مبيعات تطبيقات في الفترة.';const am=a.rev-a.cogs-a.comm-a.del,dp=d.rev?(d.rev-d.cogs-d.comm-d.del)/d.rev:.5,f=dp>0?am/(a.rev*dp):NaN;
+   return `مساهمة التطبيق ${M(am)} (${P(am/a.rev*100)} من مبيعاته) بعد الخامات والعمولة. المصروفات الثابتة لن تنخفض لو أوقفته، فإيقافه يخسرك ${M(am)} إلا لو انتقل العملاء للمباشر؛ ولتعويض الخسارة لازم ينتقل نحو ${isFinite(f)?P(Math.min(f,9.99)*100):'-'} من طلباته للمباشر. <b>${am>0?'التوصية: لا توقفه؛ فاوض على العمولة وحوّل جزءًا للمباشر.':'التطبيق يخسر فعلًا؛ إيقافه يحسّن الربح.'}</b>`}
+ if(/تسريب|بتضيع/.test(ql)){const L=leakage(R);return 'تسريبات الأرباح الشهرية: '+L.items.filter(x=>x.v>0).sort((a,b)=>b.v-a.v).map(x=>`${x.n} ${M(x.v)}`).join('، ')+`. <b>الإجمالي ${M(L.total)} شهريًا.</b>`}
+ if(/كاش|سيولة|خزنة|مسحوب/.test(ql)){const C=cashPos(),dr=drawInfo(R);return `الكاش ${M(C.cash)} والبنك ${M(C.bank)}، فلوس بره ${M(C.outside)}، مستحق للموردين ${M(C.pay)}، التزامات 7 أيام ${M(C.o7)}. المسحوبات ${M(dr.d)} (${P(dr.pct)} من صافي الربح). ${C.after<0?'⚠ السيولة لا تغطي التزامات 30 يومًا.':'السيولة تغطي التزامات الشهر.'}`}
+ if(/توقع|نهاية الشهر|هقفل/.test(ql)){const F=msForecast(R);return `متوقع مبيعات الشهر ${M(F.proj)} وصافي ربح ${M(F.net)} (الهدف ${M(F.tgN)}). ${F.net<0?'⚠ خسارة متوقعة.':F.net>=F.tgN?'✓ تحقق التارجت.':'أقل من التارجت بـ '+M(F.tgN-F.net)+'.'}`}
+ if(/بكرة|هدف اليوم/.test(ql)){const D=dailyTarget(R,msForecast(R));return `محتاج تبيع بكرة <b>${M(D.req)}</b> (التعادل اليومي ${M(D.be)}): نحو ${isFinite(D.orders)?N(D.orders):'-'} طلب، أو متوسط فاتورة ${isFinite(D.ticket)?M(D.ticket):'-'}، أي ${M(D.hour)} كل ساعة.`}
+ if(/هتخلص|نفاد|تكفي|هشتري|اشتري/.test(ql)){const pr=stockPred().filter(x=>x.dq>0).slice(0,4);return 'الأقرب للنفاد: '+pr.map(x=>`${x.g.name} ${N(x.days,1)} يوم (اشتري ${x.need7>0?fq(x.need7,x.g.unit):'لا حاجة'} للأسبوع)`).join('، ')}
+ if(/أرخص|ارخص|مورد|موردين/.test(ql)){const I=supInfo(),tp=I.rows.filter(r=>r.sv>0).sort((a,b)=>b.sv-a.sv).slice(0,3);return `التوفير الشهري لو اشتريت من الأرخص: <b>${M(I.save)}</b>. أكبر الفرص: `+(tp.map(r=>`${r.g.name} من ${r.best.sup} (${M(r.sv)})`).join('، ')||'—')+'. راجع صفحة الموردين.'}
+ if(/إنتاجية|بيكلفني|تكلفة الموظف/.test(ql)){const p=empProd(S.settings.br||'all');return `تكلفة الموظف ${M(p.perDay)} يوميًا، تكلفة العمالة لكل طلب ${N(p.laborOrder,1)} ج.م، ومبيعات كل ساعة عمل ${M(p.salesHour)}. ${p.exc?`عندك زيادة ${p.exc} موظف تشغيل عن احتياج الطلبات (${M(p.saving)} شهريًا).`:'عدد موظفي التشغيل مناسب.'}`}
+ if(/خطة|إجراء|الإجراءات|أهم/.test(ql)){const P0=planActions(R);return P0.top.map((a,i)=>`${i+1}) ${esc(a.t)} ${a.imp>0?'(+'+M(a.imp)+')':''}`).join(' — ')+` — <b>إجمالي الفرص ${M(P0.total)}</b>.`}
  if(/فرع|فروع/.test(ql)){const rs=S.branches.map(b=>({b,R:agg(b.id)})).sort((a,b)=>b.R.net-a.R.net);return 'ترتيب الفروع بصافي الربح: '+rs.map((x,i)=>`${i+1}) ${esc(x.b.name)} ${M(x.R.net)} (${x.R.rev?P(x.R.net/x.R.rev*100):'-'})`).join('، ')+'. راجع تبويب الفروع لتشخيص كل فرع مقابل قاعدة 30/30/30/10.'}
  if(/مرتب|رواتب|عمال|موظف/.test(ql))return `تكلفة العمالة ${M(R.sal)} خلال الفترة = ${P(R.labp)} من المبيعات (${R.labp>25?'أعلى من المعتاد، راجع الإضافي وعدد الموظفين':'ضمن المعدل المقبول'}). عدد الموظفين ${S.emp.length}.`
  if(/كسب|ربح|فلوس|مش شايف/.test(ql)&&!/منتج|صنف|اكتر|أكثر|سعر/.test(ql)){
@@ -384,18 +608,17 @@ function answer(q){const R=agg();const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||
  if(/مخزون|نقص|خلص/.test(ql)){const l=S.ing.filter(i=>i.stock<=i.min);return l.length?'خامات تحت الحد الأدنى: '+l.map(i=>i.name).join('، '):'لا توجد خامات تحت الحد الأدنى.'}
  if(/تكلفة|خامات/.test(ql)){const p=S.plog.slice(-5).map(x=>`${x.name} ${P(x.pct)}`).join('، ');return `نسبة تكلفة الخامات ${P(R.fcp)}. ${p?'آخر تغيرات الأسعار: '+p:'لا توجد تغيرات أسعار مسجلة بعد؛ اعتمد فاتورة بسعر مختلف لترى الأثر.'}`}
  return 'أستطيع الإجابة عن: الأرباح، المنتجات الخاسرة، أعلى الأصناف، عمولات التطبيقات، نقطة التعادل، المخزون، تكلفة الخامات. جرّب أحد الأزرار.'}
-V.ai=()=>{const qs=['إيه أفضل وأضعف فرع؟','تكلفة العمالة عاملة إزاي؟','أنا كسبت كام؟','إيه المنتجات اللي بخسر فيها؟','إيه أكتر الأصناف ربحًا؟','هل عمولة التطبيقات بتضرني؟','إيه نقطة التعادل؟','إيه الخامات اللي قربت تخلص؟','تكلفة الخامات عاملة إزاي؟'];
- return `<h2>مستشار المطعم (AI Advisor)</h2><p class="sub">يجيب من أرقام المحرك المالي فقط، مع ذكر الفترة والمصدر ولا يختلق أرقامًا.</p>
- <div class="card"><div class="row">${qs.map(q=>`<button class="b g sm" data-act="ask" data-q="${q}">${q}</button>`).join('')}</div>
- <div id="chat">${chat.map(c=>`<div class="chat ${c.u?'u':''}">${c.t}</div>`).join('')}</div>
+V.ai=()=>{const qs=['إيه الإجراءات المهمة النهاردة؟','ليه أرباحي قلت؟','إيه المنتجات اللي بخسر فيها؟','فين تسريب الأرباح؟','معايا كاش كام وإيه التزاماتي؟','هقفل الشهر على كام؟','هبيع كام بكرة؟','الفراخ والموزاريلا هتخلص إمتى؟','أرخص مورد مين؟','لو قللت 2 موظفين هوفر كام؟','هل أزود أسعار المنيو 5%؟','هل أفتح فرع جديد؟','هل أوقف التعامل مع التطبيق؟','إيه أفضل وأضعف فرع؟','الموظف بيكلفني كام؟','إيه نقطة التعادل؟','هل عمولة التطبيقات بتضرني؟','أنا كسبت كام؟','إيه أكتر الأصناف ربحًا؟','تكلفة الخامات عاملة إزاي؟'];
+ return `<h2>🤖 مساعد المطعم الذكي (AI Restaurant Manager)</h2><p class="sub">يجيب من أرقام المحرك المالي فقط، مع ذكر الفترة والمصدر ولا يختلق أرقامًا. اضغط سؤالًا لفتح إجابته، واضغطه مرة أخرى (أو ✕) لإغلاقها.</p>
+ <div class="card"><div class="row">${qs.map(q=>`<button class="b g sm${chat[0]&&chat[0].q===q?' on':''}" data-act="ask" data-q="${q}">${q}</button>`).join('')}</div>
+ ${chat.map(c=>`<div class="chat"><div class="row" style="justify-content:space-between;margin:0 0 6px;align-items:center"><b>${esc(c.q)}</b><button class="b g sm" data-act="closeChat">✕ إغلاق</button></div><div>${c.a}</div></div>`).join('')}
  <div class="row"><input id="aq" placeholder="اسأل عن مطعمك…" style="flex:1"><button class="b" data-act="askTxt">إرسال</button></div>
- <div class="note">النسخة الحالية تفسر بقواعد على بياناتك؛ ربط نموذج لغوي يتم في النسخة الإنتاجية فوق نفس المحرك.</div></div>`};
+ <div class="note">تُفسَّر الأسئلة بقواعد على بياناتك الحالية؛ ربط نموذج لغوي يتم في النسخة الإنتاجية فوق نفس المحرك.</div></div>`};
 
 // ---- simulator
 V.sim=()=>{const R=agg();return `<h2>محاكي القرارات (What-If)</h2><p class="sub">غيّر أي رقم وشاهد أثره على الربح ونقطة التعادل.</p>
  <div class="card"><div class="grid"><label class="k">رفع الأسعار %<input type="number" id="s1" value="0"></label><label class="k">تغير المبيعات %<input type="number" id="s2" value="20"></label><label class="k">عمولة التطبيقات (نقطة)<input type="number" id="s3" value="0"></label><label class="k">تغير سعر الخامات %<input type="number" id="s4" value="0"></label><label class="k">تغير المصروفات الثابتة %<input type="number" id="s5" value="0"></label><label class="k">تحويل % من التطبيق للمباشر<input type="number" id="s6" value="0"></label></div></div>
  <div class="card" id="simOut"></div>`};
-A={};
 A.sim_init=()=>{const R=agg();const f=()=>{const g=id=>+$('#'+id).value||0;
  const price=1+g('s1')/100,vol=1+g('s2')/100,dc=g('s3'),fc=1+g('s4')/100,fx=1+g('s5')/100,mv=g('s6')/100;
  const a=R.byCh.app,d=R.byCh.direct,o={...R.byCh};
@@ -413,9 +636,11 @@ A.sim_init=()=>{const R=agg();const f=()=>{const g=id=>+$('#'+id).value||0;
  document.querySelectorAll('#s1,#s2,#s3,#s4,#s5,#s6').forEach(e=>e.oninput=f);f()};
 
 // ---- settings
+const FLD=[['targetSales','هدف مبيعات الشهر (ج.م)'],['targetNet','هدف صافي الربح الشهري (ج.م)'],['settleDays','أيام تسوية التطبيقات'],['payDay','يوم صرف المرتبات من الشهر'],['rentDay','يوم سداد الإيجار'],['hours','ساعات التشغيل يوميًا'],['commOk','عمولة التطبيقات المقبولة %'],['discMax','أقصى خصم مسموح %'],['capacity','سعة موظف التشغيل (طلب/يوم)'],['workDays','أيام عمل الموظف/شهر'],['shiftHours','ساعات الوردية'],['lead','مدة التوريد (يوم)']];
 V.set=()=>`<h2>الإعدادات</h2><p class="sub">قنوات البيع والعمولات وفترة التحليل.</p>
  <div class="card"><div class="row"><label>فترة التحليل (يوم)<select id="sp">${[7,14,30].map(n=>`<option${n===S.settings.period?' selected':''}>${n}</option>`).join('')}</select></label></div>
  <div class="tw"><table><tr><th>القناة</th><th>عمولة %</th><th>تكلفة توصيل للطلب</th></tr>${Object.entries(S.channels).map(([k,c])=>`<tr><td>${c.name}</td><td><input type="number" data-cc="${k}:comm" value="${c.comm}"></td><td><input type="number" data-cc="${k}:del" value="${c.del}"></td></tr>`).join('')}</table></div>
+ <h3>الأهداف والإعدادات التشغيلية</h3><div class="row">${FLD.map(f=>`<label>${f[1]}<input type="number" data-st="${f[0]}" value="${S.settings[f[0]]??''}"></label>`).join('')}</div>
  <h3>الحدود المسموحة للمصروفات (% من المبيعات) — تظهر تحذيرات عند تجاوزها</h3><div class="row"><label>أقصى تكلفة خامات %<input type="number" id="fcl" value="${S.settings.fcLimit||33}"></label><label>أدنى هامش صافٍ للصنف الأكثر مبيعًا %<input type="number" id="mmg" value="${S.settings.minMargin||15}"></label></div><div class="tw"><table><tr><th>البند</th><th>الحد الأقصى %</th></tr>${ECATS.map(c=>`<tr><td>${c}</td><td><input type="number" step="any" data-lim="${c}" value="${limOf(c)}"></td></tr>`).join('')}</table></div>
  <h3>محرك توزيع كل بند غير مباشر</h3><div class="tw"><table><tr><th>البند</th><th>المحرك</th></tr>${ECATS.map(c=>`<tr><td>${c}</td><td><select data-drv="${c}">${Object.entries(DRV).map(([k,v])=>`<option value="${k}"${k===drvOf(c)?' selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')}</table></div>
  <div class="row" style="margin-top:10px"><button class="b" data-act="saveSet">حفظ</button><button class="b r" data-act="reset">إعادة بيانات المطعم التجريبي</button></div>
@@ -423,6 +648,8 @@ V.set=()=>`<h2>الإعدادات</h2><p class="sub">قنوات البيع وا�
 
 // ---------- actions ----------
 document.addEventListener('click',e=>{
+ if(e.target.id==='modal'){$('#modal').hidden=true;return}
+ const kd=e.target.closest('[data-kd]');if(kd&&!e.target.closest('[data-act]')){$('#mbody').innerHTML=DETAIL[kd.dataset.kd]();$('#modal').hidden=false;return}
  const t=e.target.closest('[data-tab]');if(t)return go(t.dataset.tab);
  const b=e.target.closest('[data-act]');if(!b)return;const d=b.dataset;
  const a=d.act;
@@ -434,7 +661,7 @@ document.addEventListener('click',e=>{
   S.inv.push({id:uid(),supplier:draft.supplier,date:draft.date,lines:ls.map(l=>({ing:l.ing,qty:+l.qty,unit:+l.unit,total:+l.total})),status:'pending',dup,img:null});draft=null;save();render()}
  else if(a==='appr'){const v=S.inv.find(x=>x.id===d.id);for(const l of v.lines){const g=ING(l.ing);const q=l.qty*l.unit,np=l.total/q;const old=g.last;
    g.cost=(g.stock*g.cost+q*np)/(g.stock+q);g.stock+=q;if(old&&Math.abs(np-old)/old>.02)S.plog.push({date:v.date,ing:g.id,name:g.name,old,new:np,pct:(np-old)/old*100});g.last=np;g.supplier=v.supplier}
-  v.status='approved';save();render()}
+  v.status='approved';v.paid=false;v.dueDate=addDays(v.date,supTerms(v.supplier));save();render()}
  else if(a==='rej'){S.inv.find(x=>x.id===d.id).status='rejected';save();render()}
  else if(a==='count'){let n=0;document.querySelectorAll('[data-cnt]').forEach(i=>{if(i.value==='')return;const g=ING(i.dataset.cnt),act=+i.value,theo=g.stock,diff=act-theo;
    if(diff===0)return;S.counts.push({date:today(),ing:g.id,name:g.name,unit:g.unit,theo,act,diff,pct:theo?diff/theo*100:0,val:diff*g.cost});g.stock=act;n++});save();render()}
@@ -450,19 +677,37 @@ document.addEventListener('click',e=>{
  else if(a==='sell'){if(!cart.length)return;const ch=$('#pch').value,disc=+$('#pdisc').value||0;
    const items=cart.map(c=>({rid:c.rid,qty:c.qty,price:REC(c.rid).prices[ch],cost:recCost(REC(c.rid)).total}));
    for(const c of cart)for(const it of REC(c.rid).items){const g=ING(it.ing);g.stock-=c.qty*it.qty/(g.yield/100)}
-   S.sales.push({id:uid(),date:today(),ch,items,disc,orders:1,br:$('#pbr').value});cart=[];save();render()}
- else if(a==='addExp'){const am=+$('#ea').value;if(!am)return;S.exp.push({id:uid(),date:$('#ed').value,cat:$('#ec').value,type:$('#et').value,amount:am,note:$('#en').value,ind:$('#ei').checked,br:$('#eb').value});save();render()}
+   S.sales.push({id:uid(),date:today(),ch,items,disc,orders:1,br:$('#pbr').value});if(ch!=='app')S.cash.cash+=saleCalc(S.sales[S.sales.length-1]).gross;cart=[];save();render()}
+ else if(a==='addExp'){const am=+$('#ea').value;if(!am)return;S.exp.push({id:uid(),date:$('#ed').value,cat:$('#ec').value,type:$('#et').value,amount:am,note:$('#en').value,ind:$('#ei').checked,br:$('#eb').value});{const src=$('#ep').value;if(src!=='none')S.cash[src]-=am}save();render()}
  else if(a==='delExp'){S.exp=S.exp.filter(x=>x.id!==d.id);save();render()}
- else if(a==='ask'){chat.push({u:1,t:esc(d.q)},{t:answer(d.q)});render()}
- else if(a==='askTxt'){const q=$('#aq').value.trim();if(!q)return;chat.push({u:1,t:esc(q)},{t:answer(q)});render()}
+ else if(a==='ask'){chat=(chat[0]&&chat[0].q===d.q)?[]:[{q:d.q,a:answer(d.q)}];render()}
+ else if(a==='closeChat'){chat=[];render()}
+ else if(a==='askTxt'){const q=$('#aq').value.trim();if(!q)return;chat=[{q,a:answer(q)}];render()}
  else if(a==='cancelOrder'){S.sales.push({id:uid(),date:today(),ch:$('#pch').value,br:$('#pbr').value,items:[],disc:0,orders:0,canc:+$('#cx_n').value||1,cancVal:+$('#cx_v').value||0});save();render()}
+ else if(a==='closeModal'){$('#modal').hidden=true}
+ else if(a==='planGo'){$('#modal').hidden=true;go(d.t)}
+ else if(a==='saveCash'){S.cash.cash=+$('#cc').value||0;S.cash.bank=+$('#cb').value||0;save();render()}
+ else if(a==='addDraw'){const am=+$('#da').value;if(!am)return;const src=$('#ds').value;S.draw.push({id:uid(),date:$('#dd').value,amount:am,src,note:$('#dn').value});S.cash[src]-=am;save();render()}
+ else if(a==='delDraw'){const x=S.draw.find(y=>y.id===d.id);if(x)S.cash[x.src]+=x.amount;S.draw=S.draw.filter(y=>y.id!==d.id);save();render()}
+ else if(a==='payInv'){const v=S.inv.find(x=>x.id===d.id),src=document.querySelector(`[data-ps="${d.id}"]`).value;S.cash[src]-=invTotal(v);v.paid=true;v.paidDate=today();save();render()}
+ else if(a==='addOut'){const n=$('#on').value.trim(),am=+$('#oa').value;if(!n||!am)return;S.outside.push({id:uid(),name:n,amount:am});save();render()}
+ else if(a==='delOut'){S.outside=S.outside.filter(o=>o.id!==d.id);save();render()}
+ else if(a==='addWaste'){const q=+$('#wq').value;if(!q)return;const g=ING($('#wi').value);S.waste.push({id:uid(),date:today(),br:$('#wb').value,ing:g.id,qty:q,reason:$('#wr').value});g.stock=Math.max(0,g.stock-q);save();render()}
+ else if(a==='delWaste'){const w=S.waste.find(x=>x.id===d.id);if(w)ING(w.ing).stock+=w.qty;S.waste=S.waste.filter(x=>x.id!==d.id);save();render()}
+ else if(a==='copyPO'){const tx=poText(d.s);try{navigator.clipboard.writeText(tx);alert('تم نسخ الطلبية')}catch(e){prompt('انسخ الطلبية',tx)}}
+ else if(a==='waPO'){window.open('https://wa.me/?text='+encodeURIComponent(poText(d.s)),'_blank')}
+ else if(a==='setSup'){ING(d.ing).supplier=d.sup;save();render()}
  else if(a==='addBranch'){const n=$('#nb').value.trim();if(!n)return;S.branches.push({id:'b'+uid(),name:n});save();render()}
  else if(a==='addEmp'){const n=$('#en1').value.trim(),b=+$('#en4').value;if(!n||!b)return;S.emp.push({id:'e'+uid(),name:n,role:$('#en2').value,br:$('#en3').value,base:b,allow:+$('#en5').value||0,inc:0,otH:0,abs:0,adv:0});save();render()}
  else if(a==='delEmp'){S.emp=S.emp.filter(e=>e.id!==d.id);save();render()}
- else if(a==='saveSet'){S.settings.period=+$('#sp').value;S.settings.fcLimit=+$('#fcl').value||33;S.settings.minMargin=+$('#mmg').value||15;S.settings.limits={};document.querySelectorAll('[data-lim]').forEach(i=>S.settings.limits[i.dataset.lim]=+i.value||0);S.settings.drv={};document.querySelectorAll('[data-drv]').forEach(i=>S.settings.drv[i.dataset.drv]=i.value);document.querySelectorAll('[data-cc]').forEach(i=>{const[k,f]=i.dataset.cc.split(':');S.channels[k][f]=+i.value||0});save();render()}
+ else if(a==='saveSet'){S.settings.period=+$('#sp').value;document.querySelectorAll('[data-st]').forEach(i=>S.settings[i.dataset.st]=+i.value||0);S.settings.fcLimit=+$('#fcl').value||33;S.settings.minMargin=+$('#mmg').value||15;S.settings.limits={};document.querySelectorAll('[data-lim]').forEach(i=>S.settings.limits[i.dataset.lim]=+i.value||0);S.settings.drv={};document.querySelectorAll('[data-drv]').forEach(i=>S.settings.drv[i.dataset.drv]=i.value);document.querySelectorAll('[data-cc]').forEach(i=>{const[k,f]=i.dataset.cc.split(':');S.channels[k][f]=+i.value||0});save();render()}
  else if(a==='reset'){if(confirm('سيتم مسح بياناتك وإعادة بيانات المطعم التجريبي. متابعة؟')){S=seed();save();draft=null;cart=[];chat=[];render()}}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.min){ING(t.dataset.min).min=+t.value||0;save();render();return}
+ if(t.dataset.srate){S.sup.find(s=>s.name===t.dataset.srate).rating=clamp(+t.value||3,1,5);save();render();return}
+ if(t.dataset.sterms){S.sup.find(s=>s.name===t.dataset.sterms).terms=+t.value||0;save();render();return}
+ if(t.dataset.qt){const[id,sp]=t.dataset.qt.split(':');const q=S.quotes[id].find(x=>x.sup===sp),np=+t.value||q.price;if(np!==q.price){q.prev=q.price;q.price=np;const g=ING(id);if(sp===g.supplier&&np>q.prev)S.plog.push({date:today(),ing:id,name:g.name,old:q.prev,new:np,pct:(np-q.prev)/q.prev*100})}save();render();return}
  if(t.id==='pch'){draftCh=t.value;render();return}
  if(t.id==='brSel'){S.settings.br=t.value;save();render();return}
  if(t.id==='pbr'){draftBr=t.value;return}
@@ -479,4 +724,5 @@ document.addEventListener('input',e=>{const t=e.target,k=t.dataset.d;if(!k||!dra
  if(k==='supplier'||k==='date'){draft[k]=t.value;return}
  if(t.dataset.i!==undefined&&k!=='ing')draft.lines[+t.dataset.i][k]=+t.value||0});
 render();
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').hidden=true});
 </script></body></html>
