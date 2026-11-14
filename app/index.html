@@ -347,7 +347,7 @@ function health(){const R=agg(),B=beInfo(R),F=msForecast(R),parts=[];
  return {score:Math.round(parts.reduce((a,p)=>a+p.s,0)/parts.length),parts}}
 
 // ---------- ui ----------
-const NAV=[['🏠','الرئيسية',[['home','🏠 الرئيسية'],['plan','🚀 اعمل إيه النهاردة'],['mp','💰 خطة الربح']]],['🛒','المبيعات',[['pos','🛒 تسجيل بيع'],['imp','📥 استيراد وتصدير']]],['📦','المشتريات والمخزون',[['inv','🧾 الفواتير'],['stock','📦 المخزون'],['sup','🤝 الموردون']]],['💵','الفلوس',[['exp','💸 المصروفات'],['cash','💵 الفلوس والسيولة'],['pay','👥 الرواتب والإنتاجية']]],['📊','التحليل',[['dash','📊 لوحة المالك الكاملة'],['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['br','🏢 الفروع']]],['🧰','أدوات',[['close','🗓 تقرير الشهر والميزانية'],['ai','🤖 اسأل المساعد'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']]]];
+const NAV=[['🏠','الرئيسية',[['dash','📊 لوحة المالك الكاملة'],['home','🏠 الرئيسية'],['plan','🚀 اعمل إيه النهاردة'],['mp','💰 خطة الربح']]],['🛒','المبيعات',[['pos','🛒 تسجيل بيع'],['imp','📥 استيراد وتصدير']]],['📦','المشتريات والمخزون',[['inv','🧾 الفواتير'],['stock','📦 المخزون'],['sup','🤝 الموردون']]],['💵','الفلوس',[['exp','💸 المصروفات'],['cash','💵 الفلوس والسيولة'],['pay','👥 الرواتب والإنتاجية']]],['📊','التحليل',[['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['br','🏢 الفروع']]],['🧰','أدوات',[['close','🗓 تقرير الشهر والميزانية'],['ai','🤖 اسأل المساعد'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']]]];
 const TABS=NAV.flatMap(g=>g[2]);
 const SIMPLE=['home','dash','plan','pos','exp','inv','stock','cash','close','ai','imp','set'];
 const ROLES={owner:{n:'المالك',tabs:'*'},acct:{n:'المحاسب',tabs:['home','plan','exp','inv','cash','pay','pl','imp','close','dash','sup']},store:{n:'أمين المخزن',tabs:['home','inv','stock','sup','rec']},cash:{n:'الكاشير',tabs:['home','pos']}};
@@ -355,7 +355,7 @@ const role=()=>S.settings.role||'owner';
 const can=t=>ROLES[role()].tabs==='*'||ROLES[role()].tabs.includes(t);
 function log(x){S.audit=S.audit||[];S.audit.push({t:new Date().toISOString().slice(0,16).replace('T',' '),u:ROLES[role()].n,x});if(S.audit.length>300)S.audit.shift()}
 const QA=[['🛒','سجّل بيع','pos','#pdisc'],['💸','سجّل مصروف','exp','#ea'],['🧾','فاتورة مشتريات','inv',''],['📦','جرد / هالك','stock','#wq'],['🏧','مسحوبات','cash','#da'],['📥','استيراد مبيعات','imp',''],['📤','ملخص اليوم','home','']];
-let tab='home';let draft=null,cart=[],focusSel=null;
+let tab='dash';let draft=null,cart=[],focusSel=null;
 function nav(){const na=alerts().filter(a=>a[0]!=='i').length,simple=(S.settings.mode||'simple')==='simple',btn=x=>`<button class="${x[0]===tab?'on':''}" data-tab="${x[0]}">${x[1]}${x[0]==='dash'&&na?`<span class="bd">${na}</span>`:''}${x[0]==='plan'&&na&&simple?`<span class="bd">${na}</span>`:''}</button>`;
  const list=simple?TABS.filter(x=>SIMPLE.includes(x[0])&&can(x[0])).map(btn).join(''):NAV.map(g=>{const its=g[2].filter(x=>can(x[0]));return its.length?`<div class="grp">${g[0]} ${g[1]}</div>`+its.map(btn).join(''):''}).join('');
  $('#nav').className=simple?'simple':'';
