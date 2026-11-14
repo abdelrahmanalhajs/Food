@@ -214,6 +214,40 @@ function poList(){const by={};for(const g of S.ing)if(g.stock<g.min){(by[g.suppl
 function future(R){const k=K(),B=beInfo(R),sales=R.rev*k,a15=win(15).rev,p15=win(30).rev-a15,g=p15?clamp(a15/p15-1,-.08,.1,):0;
  const dr=drawInfo(R).dm,start=S.cash.cash+S.cash.bank;
  return [['متحفظ',g-.03],['واقعي',g],['متفائل',g+.04]].map(([n,gm])=>{let cum=0,cash=start,out=null,rows={};for(let m=1;m<=12;m++){const sm=sales*Math.pow(1+gm,m),net=sm*R.cmr-B.fx*Math.pow(1.01,m);cum+=net;cash+=net-dr;if(cash<0&&out===null)out=m;if([3,6,12].includes(m))rows[m]={net,cum,cash}}return {n,gm,rows,out}})}
+const hid=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return 'p'+(h>>>0).toString(36)};
+function moneyPlan(R){const k=K(),B=beInfo(R),netM=R.net*k,tgN=S.settings.targetNet*(R.share??1),revM=R.rev*k,cmr=R.cmr,C=cashPos(),dr=drawInfo(R);
+ const PH=[['اليوم — إجراءات عاجلة',[]],['الأسبوع 1 — أوقف التسريب',[]],['الأسبوع 2 — التسعير والتكلفة',[]],['الأسبوعان 3–4 — ارفع المبيعات',[]],['الشهر الثاني — إعادة هيكلة',[]]];
+ const phase=a=>/اطلب الخامات|سدّد فواتير/.test(a.t)?0:/المسحوبات/.test(a.t)?-1:/هالك|فروق|خصومات|مصروف|إلغاء|ملغاة/.test(a.t)?1:/سعر|تكلفة|مورد/.test(a.t)?2:/المباشر|عمولة|الفاتورة|الطلبات|عروض/.test(a.t)?3:/موظف|إيجار|فرع/.test(a.t)?4:3;
+ const items=[];
+ for(const a of planActions(R).all){if(/^سدّ فجوة/.test(a.t))continue;const ph=phase(a);if(ph<0)continue;items.push({...a,ph})}
+ items.push({t:'خفّض تكلفة الخامات نقطة مئوية واحدة (جرامات، هالك، مشتريات)',why:`الحالية ${P(R.fcp)} من المبيعات`,imp:revM*.01,go:'rec',ph:2});
+ items.push({t:'ارفع متوسط الفاتورة 5% (كومبو، إضافات، مشروبات)',why:`متوسط الفاتورة الآن ${M(R.avgTicket)}`,imp:revM*.05*cmr,go:'me',ph:3});
+ items.push({t:'زوّد عدد الطلبات 5% (عروض مدروسة وتسويق للمباشر)',why:`${N(R.orders/S.settings.period)} طلب يوميًا حاليًا`,imp:revM*.05*cmr,go:'pos',ph:3});
+ if(R.canc)items.push({t:'قلّل الطلبات الملغاة للنصف',why:`${N(R.canc)} طلب ملغى بقيمة ${M(R.cancVal)}`,imp:R.cancVal*.5*cmr*k,go:'pos',ph:1});
+ const rent=(R.byCat['إيجار']||0)*k;if(rent>0)items.push({t:'فاوض على الإيجار (تخفيض 10% أو إيجار متغير مع المبيعات)',why:`الإيجار ${M(rent)} شهريًا`,imp:rent*.1,go:'exp',ph:4});
+ for(const b of S.branches){const x=agg(b.id);if(x.rev&&x.net<0)items.push({t:`راجع فرع ${b.name}: خطة تعافي 60 يومًا أو إعادة هيكلة العمالة والإيجار`,why:`يخسر ${M(-x.net*k)} شهريًا`,imp:-x.net*k*.5,go:'br',ph:4})}
+ items.forEach(a=>{a.eff=Math.max(0,a.imp)*.5;a.id=hid(a.t);PH[a.ph][1].push(a)});
+ PH.forEach(p=>p[1].sort((a,b)=>b.eff-a.eff));
+ let cum=0,beAt=null,tgAt=null;const flat=[];PH.forEach((p,i)=>p[1].forEach(a=>{cum+=a.eff;a.cum=cum;flat.push(a);if(beAt===null&&netM+cum>=0)beAt=[p[0],a];if(tgAt===null&&netM+cum>=tgN)tgAt=[p[0],a]}));
+ const total=cum,done=flat.filter(a=>(S.planDone||{})[a.id]),doneImp=done.reduce((a,x)=>a+x.eff,0);
+ const cash=[];if(dr.d>0)cash.push(['جمّد أو خفّض المسحوبات الشخصية حتى يتحسن الربح',`مسحوبات الفترة ${M(dr.d)}`,dr.dm]);
+ if(C.rec>0)cash.push(['حصّل مستحقات تطبيقات التوصيل في موعدها واطلب تسوية أسبوعية',`مستحقات بره ${M(C.rec)}`,C.rec]);
+ if(C.pay>0)cash.push(['فاوض الموردين على إطالة مدة السداد (30 يومًا) وسدّد الحرج فقط أولًا',`مستحق للموردين ${M(C.pay)}`,C.pay*.3]);
+ const slow=stockPred().filter(x=>x.dq>0&&x.days>30);if(slow.length)cash.push(['لا تشتر خامات تكفي أكثر من 30 يومًا (رأس مال راكد)',slow.map(x=>x.g.name).join('، '),slow.reduce((a,x)=>a+(x.g.stock-x.dq*30)*x.g.cost,0)]);
+ const sit=netM<0?['🔴','المطعم يخسر '+M(-netM)+' شهريًا — خطة تعافي','var(--bad)']:netM<tgN?['🟠','رابح لكن أقل من هدفك بـ '+M(tgN-netM)+' — خطة نمو','var(--warn)']:['🟢','حققت هدف الربح — خطة تثبيت وزيادة','var(--ok)'];
+ return {PH,netM,tgN,total,beAt,tgAt,sit,done:done.length,n:flat.length,doneImp,cash,after:netM+total,loss:netM<0,B,C}}
+function secScore(R){const br=S.settings.br||'all',k=K(),C=cashPos(),A0=agg('all'),B=beInfo(R);let dsc=0,gr=0;for(const s of S.sales){if(!inPeriod(s.date)||(br!=='all'&&s.br!==br))continue;const base=s.items.reduce((a,i)=>a+i.qty*i.price,0);gr+=base;dsc+=base*s.disc/100}
+ const rent=R.rev?(R.byCat['إيجار']||0)/R.rev*100:0,ords=R.orders/S.settings.period,emp=S.emp.filter(e=>br==='all'||e.br===br).length;
+ const lo=(v,l)=>v<=l?'ok':v<=l*1.15?'warn':'bad',hi=(v,l)=>v>=l?'ok':v>=l*.8?'warn':'bad';
+ const rows=[['Food Cost %',R.fcp,P(R.fcp),'≤ '+(S.settings.fcLimit||33)+'%',lo(R.fcp,S.settings.fcLimit||33)],['Labor Cost %',R.labp,P(R.labp),'≤ 25%',lo(R.labp,25)],['Prime Cost % (خامات+عمالة)',R.fcp+R.labp,P(R.fcp+R.labp),'≤ 60%',lo(R.fcp+R.labp,60)],['الإيجار % من المبيعات',rent,P(rent),'≤ '+limOf('إيجار')+'%',lo(rent,limOf('إيجار'))],
+  ['مجمل الربح %',R.rev?(R.rev-R.cogs)/R.rev*100:0,P(R.rev?(R.rev-R.cogs)/R.rev*100:0),'≥ 65%',hi(R.rev?(R.rev-R.cogs)/R.rev*100:0,65)],['هامش المساهمة %',R.cmr*100,P(R.cmr*100),'≥ 40%',hi(R.cmr*100,40)],['صافي الربح %',R.rev?R.net/R.rev*100:0,P(R.rev?R.net/R.rev*100:0),'≥ 15%',hi(R.rev?R.net/R.rev*100:0,15)],
+  ['عمولات + توصيل %',R.rev?(R.comm+R.del)/R.rev*100:0,P(R.commp+(R.rev?R.del/R.rev*100:0)),'≤ 18%',lo(R.rev?(R.comm+R.del)/R.rev*100:0,18)],['الخصومات % من المبيعات',gr?dsc/gr*100:0,P(gr?dsc/gr*100:0),'≤ '+(S.settings.discMax??5)+'%',lo(gr?dsc/gr*100:0,S.settings.discMax??5)],['نسبة الإلغاء',R.orders+R.canc?R.canc/(R.orders+R.canc)*100:0,P(R.orders+R.canc?R.canc/(R.orders+R.canc)*100:0),'≤ 3%',lo(R.orders+R.canc?R.canc/(R.orders+R.canc)*100:0,3)],
+  ['الهالك % من الخامات',R.cogs?R.waste/R.cogs*100:0,P(R.cogs?R.waste/R.cogs*100:0),'≤ 2%',lo(R.cogs?R.waste/R.cogs*100:0,2)],['طلبات يوميًا',ords,N(ords),'معلومة','i'],['متوسط الفاتورة',R.avgTicket,M(R.avgTicket),'معلومة','i'],
+  ['تكلفة الطلب الكاملة',R.orders?(R.rev-R.net)/R.orders:0,M(R.orders?(R.rev-R.net)/R.orders:0),'أقل من متوسط الفاتورة',R.orders&&(R.rev-R.net)/R.orders<R.avgTicket?'ok':'bad'],['ربح الطلب الواحد',R.orders?R.net/R.orders:0,M(R.orders?R.net/R.orders:0),'> 0',R.net>0?'ok':'bad'],
+  ['طلبات التعادل يوميًا',B.day&&R.avgTicket?B.day/R.avgTicket:0,N(B.day&&R.avgTicket?B.day/R.avgTicket:0),'أقل من الفعلي ('+N(ords)+')',B.day/(R.avgTicket||1)<ords?'ok':'bad'],['أيام المخزون',A0.cogs?S.ing.reduce((a,i)=>a+i.stock*i.cost,0)/(A0.cogs/S.settings.period):0,N(A0.cogs?S.ing.reduce((a,i)=>a+i.stock*i.cost,0)/(A0.cogs/S.settings.period):0),'5 – 15 يومًا','i'],
+  ['مبيعات الموظف شهريًا',emp?R.rev*k/emp:0,M(emp?R.rev*k/emp:0),'معلومة','i'],['أيام تغطية السيولة',C.coverDays,isFinite(C.coverDays)?N(C.coverDays):'-','≥ 30 يومًا',isFinite(C.coverDays)?hi(C.coverDays,30):'i']];
+ const cl={ok:'pos',warn:'wr',bad:'neg',i:''},ic={ok:'✓',warn:'!',bad:'✗',i:'•'};
+ return `<div class="card"><h3 style="margin-top:0">📋 الأرقام الأساسية للمالك (${S.settings.period} يوم — ${esc(brName())})</h3>${tbl(['المؤشر','الفعلي','المعيار','الحالة'],rows.map(r=>[`<b>${r[0]}</b>`,r[2],r[3],`<span class="${cl[r[4]]}">${ic[r[4]]} ${r[4]==='ok'?'جيد':r[4]==='warn'?'قريب من الحد':r[4]==='bad'?'يحتاج علاج':'—'}</span>`]))}<div class="note">المعايير مرجعية عامة لقطاع المطاعم وتقدر تعدّل بعضها من الإعدادات؛ الأحمر هو أول ما يستحق انتباهك.</div></div>`}
 function planActions(R){const k=K(),A=[],B=beInfo(R),L=leakage(R),sp=supInfo(),mm=S.settings.minMargin||15,ck=cashPos(),dr=drawInfo(R);
  const rows=S.rec.map(r=>({r,...(R.byRec[r.id]||{})})).filter(x=>x.qty);
  if(R.rev&&isFinite(B.month)&&B.a30<B.month)A.push({u:1,t:'سدّ فجوة نقطة التعادل: ارفع المبيعات أو خفّض الثابتة',why:`مبيعات 30 يومًا ${M(B.a30)} أقل من التعادل ${M(B.month)}`,imp:B.month-B.a30,go:'dash'});
@@ -298,7 +332,7 @@ function health(){const R=agg(),B=beInfo(R),F=msForecast(R),parts=[];
  return {score:Math.round(parts.reduce((a,p)=>a+p.s,0)/parts.length),parts}}
 
 // ---------- ui ----------
-const TABS=[['plan','🚀 خطة اليوم'],['dash','📊 اللوحة'],['inv','🧾 الفواتير'],['stock','📦 الخامات والمخزون'],['sup','🤝 الموردون'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['pos','🛒 المبيعات'],['exp','💸 المصروفات'],['cash','💵 الخزنة والسيولة'],['pay','👥 الرواتب والإنتاجية'],['br','🏢 الفروع'],['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['ai','🤖 المستشار'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']];
+const TABS=[['plan','🚀 خطة اليوم'],['mp','💰 خطة الربح'],['dash','📊 اللوحة'],['inv','🧾 الفواتير'],['stock','📦 الخامات والمخزون'],['sup','🤝 الموردون'],['rec','🍝 الوصفات والتكلفة'],['price','🏷 التسعير'],['pos','🛒 المبيعات'],['exp','💸 المصروفات'],['cash','💵 الخزنة والسيولة'],['pay','👥 الرواتب والإنتاجية'],['br','🏢 الفروع'],['pl','📈 الأرباح والخسائر'],['me','⭐ تحليل المنيو'],['ai','🤖 المستشار'],['sim','🎛 المحاكي'],['set','⚙ الإعدادات']];
 let tab='plan';let draft=null,cart=[];
 function nav(){const na=alerts().filter(a=>a[0]!=='i').length;$('#nav').innerHTML='<h1>FOODPILOT AI</h1><small>مطعم تجريبي — نسخة عمل</small><select id="brSel" style="width:100%;margin:0 0 10px;background:#1c3a2b;color:#fff;border:0">'+[['all','كل الفروع']].concat(S.branches.map(b=>[b.id,b.name])).map(o=>`<option value="${o[0]}"${o[0]===(S.settings.br||'all')?' selected':''}>${o[1]}</option>`).join('')+'</select>'+TABS.map(t=>`<button class="${t[0]===tab?'on':''}" data-tab="${t[0]}">${t[1]}${t[0]==='dash'&&na?`<span class="bd">${na}</span>`:''}</button>`).join('')}
 function go(t){tab=t;render()}
@@ -416,7 +450,22 @@ V.plan=()=>{const R=agg(),P0=planActions(R);const lv={u:['🔴 عاجل','var(--
  <div class="card"><table><tr><th>الأولوية</th><th>الإجراء</th><th>السبب</th><th>التأثير المتوقع شهريًا</th><th></th></tr>${P0.top.map(row).join('')||'<tr><td colspan=5 class="note">لا توجد إجراءات حاليًا — الأداء جيد ✓</td></tr>'}</table>
  <div class="al i" style="margin-top:10px;font-size:17px"><b>إجمالي فرص تحسين الربح: ${M(P0.total)} شهريًا</b></div>
  <div class="note">التأثير تقدير من بياناتك وافتراضات بسيطة (مثلًا: رفع السعر 5% يفقد 30% من أثره بسبب انخفاض الطلب، وتوفير نصف الهالك). ليس وعدًا بنتيجة. الإجراءات الحرجة (🔴) تُعرض أولًا حتى لو تأثيرها المالي صغير.</div></div>
- ${P0.rest.length?`<details class="card"><summary style="cursor:pointer;color:var(--brand);font-weight:700">باقي الفرص (${P0.rest.length})</summary><table>${P0.rest.map(a=>row({...a,l:a.u?'u':'g'})).join('')}</table></details>`:''}`};
+ ${P0.rest.length?`<details class="card"><summary style="cursor:pointer;color:var(--brand);font-weight:700">باقي الفرص (${P0.rest.length})</summary><table>${P0.rest.map(a=>row({...a,l:a.u?'u':'g'})).join('')}</table></details>`:''}
+ <div class="card"><b>لخطة كاملة بالمراحل والأرقام:</b> <button class="b" data-act="planGo" data-t="mp">💰 افتح خطة الربح</button></div>`};
+
+// ---- profit plan
+V.mp=()=>{const R=agg(),M0=moneyPlan(R),k=K();
+ const stat=(l,v,c)=>`<div class="card" style="margin:0"><div class="k">${l}</div><div class="v s ${c||''}">${v}</div></div>`;
+ return `<h2>💰 خطة الربح</h2><p class="sub">خطة بالأرقام والمراحل تنقلك من وضعك الحالي إلى الهدف: <b>تعافي</b> لو المطعم يخسر، و<b>نمو</b> لو رابح. ${per()}</p>
+ <div class="card" style="border-top:4px solid ${M0.sit[2]}"><h3 style="margin-top:0">${M0.sit[0]} ${M0.sit[1]}</h3>
+ <div class="grid">${stat('صافي الربح الشهري الحالي',M(M0.netM),M0.netM<0?'neg':'pos')}${stat('هدف صافي الربح',M(M0.tgN))}${stat('أثر الخطة المُقدَّر (بعد خصم 50% للتحفظ والتداخل)','+'+M(M0.total),'pos')}${stat('الربح المتوقع بعد الخطة',M(M0.after),M0.after<0?'neg':'pos')}</div>
+ <div class="al ${M0.after<0?'c':'i'}" style="margin-top:8px">${M0.loss?(M0.beAt?`✓ تنفيذ الخطة حتى «${M0.beAt[0]}» يعيدك للتعادل (ربح صفر)${M0.tgAt?'، وحتى «'+M0.tgAt[0]+'» يحقق هدفك':'، ويحتاج الوصول للهدف خطوات إضافية'}.`:'⚠ الخطة الحالية لا تكفي وحدها للتعادل؛ تحتاج قرارات أكبر: إيجار، عدد الفروع، أو نموذج التشغيل (انظر أسفل).'):(M0.tgAt?`✓ تحقق الهدف عند إتمام «${M0.tgAt[0]}».`:M0.netM>=M0.tgN?'✓ حققت الهدف؛ ركّز على الحفاظ وزيادة الربح.':'الخطة تقرّبك من الهدف لكنها لا تبلغه كاملًا؛ ارفع الأسعار أو خفّض الثابتة أكثر.')}</div>
+ <div class="note">تم إنجاز ${M0.done} من ${M0.n} خطوة، أثر محقق ${M(M0.doneImp)} شهريًا.</div></div>
+ ${M0.PH.map(([n,l],i)=>l.length?`<div class="card"><h3 style="margin-top:0">${n}</h3><div class="tw"><table><tr><th>تم</th><th>الإجراء</th><th>لماذا</th><th>الأثر الشهري</th><th>التراكمي</th><th></th></tr>${l.map(a=>`<tr><td><input type="checkbox" data-pd="${a.id}" ${(S.planDone||{})[a.id]?'checked':''}></td><td><b>${esc(a.t)}</b></td><td class="note">${esc(a.why)}</td><td class="pos">${a.eff>0?'+'+M(a.eff):'—'}</td><td>${M(M0.netM+a.cum)}</td><td><button class="b g sm" data-act="planGo" data-t="${a.go}">افتح</button></td></tr>`).join('')}</table></div></div>`:'').join('')}
+ ${M0.cash.length&&(M0.loss||M0.C.after<0||M0.C.o7>M0.C.liquid)?`<div class="card" style="border-top:4px solid var(--warn)"><h3 style="margin-top:0">🛡 حماية السيولة أثناء التنفيذ</h3>${tbl(['الإجراء','الرقم','أثر على الكاش'],M0.cash.map(c=>[`<b>${c[0]}</b>`,c[1],`<span class="pos">+${M(c[2])}</span>`]))}</div>`:''}
+ ${M0.loss||M0.after<0?`<div class="card" style="border-top:4px solid var(--bad)"><h3 style="margin-top:0">لو الخطة لم تكفِ: قرارات أكبر</h3><ul style="line-height:2;margin:0"><li>إعادة التفاوض على الإيجار أو الانتقال لموقع أرخص (جرّب المحاكي بإيجار أقل).</li><li>إغلاق أو دمج الفرع الأضعف إن لم يحقق التعادل بعد 60 يومًا من الخطة.</li><li>تقليص المنيو للأصناف الأعلى مساهمة وتقليل الهالك.</li><li>تحويل أكبر حصة ممكنة من طلبات التطبيقات للمباشر.</li></ul></div>`:''}
+ ${secScore(R)}
+ <div class="note">الأثر تقدير مبني على بياناتك وافتراضات بسيطة، مع خصم 50% للتحفظ والتداخل بين الإجراءات. نفّذ على مراحل وراجع الأرقام بعد كل أسبوع.</div>`};
 
 // ---- cash
 V.cash=()=>{const C=cashPos(),R=agg('all'),dr=drawInfo(R),F=msForecast(R);const rsv=.1*R.rev,left=R.net-dr.d;
@@ -704,6 +753,7 @@ document.addEventListener('click',e=>{
  else if(a==='reset'){if(confirm('سيتم مسح بياناتك وإعادة بيانات المطعم التجريبي. متابعة؟')){S=seed();save();draft=null;cart=[];chat=[];render()}}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.pd){S.planDone=S.planDone||{};S.planDone[t.dataset.pd]=t.checked;save();render();return}
  if(t.dataset.min){ING(t.dataset.min).min=+t.value||0;save();render();return}
  if(t.dataset.srate){S.sup.find(s=>s.name===t.dataset.srate).rating=clamp(+t.value||3,1,5);save();render();return}
  if(t.dataset.sterms){S.sup.find(s=>s.name===t.dataset.sterms).terms=+t.value||0;save();render();return}
