@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tk Classic | تي كي كلاسيك</title>
+<meta name="description" content="Tk Classic: أزياء وبيتيات وعبايات ولانجري وشنط وأحذية ومفروشات وأدوات منزلية وميكب وطرح وأطفالي — موقع تجريبي.">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#faf6f0;--card:#fff;--ink:#1f1a17;--mute:#7a6f66;--line:#eadfd0;--gold:#b8893b;--gold2:#c9a15a;--dark:#1f1a17;--rose:#b5485d;--ok:#2e7d4f}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,system-ui,sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
+.topnote{background:var(--dark);color:#f3e6cc;text-align:center;font-size:13px;padding:6px 10px}
+header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.hd{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.5px}
+.logo img{width:40px;height:40px;border-radius:10px}.logo small{display:block;font-size:11px;font-weight:600;color:var(--gold);letter-spacing:2px;line-height:1}
+.srch{flex:1;display:flex;max-width:520px;margin-inline:auto}
+.srch input{flex:1;border:1px solid var(--line);border-radius:999px 0 0 999px;padding:9px 16px;font:inherit;background:var(--bg);min-width:0}
+[dir=rtl] .srch input{border-radius:0 999px 999px 0}
+.srch button{border:0;background:var(--gold);color:#fff;padding:0 18px;border-radius:0 999px 999px 0;font-size:16px}
+[dir=rtl] .srch button{border-radius:999px 0 0 999px}
+.ib{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;position:relative;white-space:nowrap}
+.ib:hover{border-color:var(--gold)}
+.bd{position:absolute;top:-6px;inset-inline-end:-4px;background:var(--rose);color:#fff;font-size:11px;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 4px}
+.bd.bump{animation:bump .5s}@keyframes bump{40%{transform:scale(1.5)}}
+nav#cats{max-width:1200px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:6px 16px 10px;scrollbar-width:thin}
+nav#cats a{white-space:nowrap;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:600;color:var(--mute);border:1px solid transparent}
+nav#cats a:hover{color:var(--ink);border-color:var(--line)}nav#cats a.on{background:var(--dark);color:#f3e6cc}
+main{max-width:1200px;margin:0 auto;padding:18px 16px 40px;min-height:60vh}
+.hero{background:linear-gradient(120deg,#1f1a17,#3a2a22 60%,#5a3a2a);color:#f3e6cc;border-radius:22px;padding:44px 32px;display:grid;grid-template-columns:1.2fr .8fr;gap:20px;align-items:center;overflow:hidden}
+.hero h1{font-size:clamp(28px,5vw,46px);margin:0 0 8px;line-height:1.25}.hero h1 span{color:var(--gold2)}
+.hero p{margin:0 0 18px;color:#d9c8a8;font-size:17px;max-width:520px}
+.hero .art{font-size:110px;text-align:center;filter:drop-shadow(0 8px 20px #0006);letter-spacing:8px}
+.btn{display:inline-block;background:var(--gold);color:#fff;border:0;border-radius:12px;padding:11px 22px;font-weight:700;font-size:15px}
+.btn:hover{background:#a37a31}.btn.o{background:transparent;color:var(--ink);border:2px solid var(--ink)}.btn.dk{background:var(--dark)}
+.btn.sm{padding:7px 14px;font-size:13px}.btn:disabled{opacity:.5}
+h2.sec{font-size:24px;margin:30px 0 12px;display:flex;align-items:center;gap:10px}h2.sec a{margin-inline-start:auto;font-size:14px;color:var(--gold);font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;font-weight:700;transition:.2s}
+.tile:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 20px #0001}
+.tile .em{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;margin:0 auto 6px;font-size:32px;background:hsl(var(--h) 55% 90%)}
+.tile small{display:block;color:var(--mute);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:.2s;position:relative}
+.card:hover{box-shadow:0 10px 24px #0001;border-color:var(--gold2)}
+.pimg{aspect-ratio:1/1;display:grid;place-items:center;font-size:72px;background:linear-gradient(145deg,hsl(var(--h) 60% 92%),hsl(calc(var(--h) + 25) 55% 82%))}
+.card .in{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
+.card .nm{font-weight:700;font-size:15px;line-height:1.35}.card .ct{font-size:12px;color:var(--mute)}
+.price{font-weight:800;color:var(--dark)}.price s{color:var(--mute);font-weight:500;font-size:13px;margin-inline-start:6px}
+.tag{position:absolute;top:10px;inset-inline-start:10px;background:var(--rose);color:#fff;border-radius:8px;padding:2px 9px;font-size:12px;font-weight:700}
+.stars{color:var(--gold);font-size:13px}.stars span{color:var(--mute);margin-inline-start:4px}
+.card .add{margin-top:auto}
+.crumb{font-size:13px;color:var(--mute);margin-bottom:8px}.crumb a{color:var(--gold);font-weight:700}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 16px}
+.bar select,.bar input{border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit;background:var(--card)}
+.bar .n{margin-inline-end:auto;color:var(--mute)}
+.pd{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.pd .pimg{border-radius:20px;font-size:180px;border:1px solid var(--line)}
+.pd h1{margin:0 0 6px;font-size:28px}.pd .price{font-size:26px;margin:8px 0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 14px;font-weight:700}
+.chip.on{background:var(--dark);color:#f3e6cc;border-color:var(--dark)}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);padding:0;position:relative}.sw.on{outline:3px solid var(--gold);outline-offset:2px}
+.lbl{font-weight:700;margin-top:10px}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.qty button{border:0;background:none;width:34px;height:34px;font-size:18px}.qty b{min-width:30px;text-align:center}
+.feat{color:var(--mute);padding-inline-start:18px;margin:14px 0}
+.cartwrap{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.li{display:grid;grid-template-columns:70px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border:0}.li .pimg{font-size:34px;border-radius:12px}.li .x{border:0;background:none;color:var(--rose);font-size:20px}
+.sum div{display:flex;justify-content:space-between;padding:5px 0}.sum .tot{font-size:20px;font-weight:800;border-top:2px solid var(--line);margin-top:6px;padding-top:10px}
+.sum .ok{color:var(--ok)}
+.frm{display:grid;grid-template-columns:1fr 1fr;gap:12px}.frm label{display:flex;flex-direction:column;font-weight:700;font-size:14px;gap:4px}.frm .w{grid-column:1/-1}
+.frm input,.frm select,.frm textarea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;background:var(--bg)}
+.frm input.bad,.frm select.bad,.frm textarea.bad{border-color:var(--rose);background:#fff2f4}
+.err{color:var(--rose);font-size:12px;font-weight:600;min-height:0}
+.pay{display:flex;flex-direction:column;gap:8px}.pay label{flex-direction:row;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg);font-weight:700;gap:10px}
+.pay label.on{border-color:var(--gold);background:#fff8ea}
+.steps{display:flex;gap:8px;margin:6px 0 16px;flex-wrap:wrap}.steps span{padding:4px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--mute)}.steps .on{background:var(--dark);color:#f3e6cc;border-color:var(--dark)}
+.done{text-align:center;padding:30px 10px}.done .ok{font-size:70px}.done h1{margin:6px 0}.done .no{display:inline-block;background:#fff8ea;border:1px dashed var(--gold);border-radius:12px;padding:8px 22px;font-size:22px;font-weight:800;letter-spacing:1px;margin:8px 0}
+.perks{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:30px}.perks div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;font-weight:700}.perks small{display:block;color:var(--mute);font-weight:500}
+footer{background:var(--dark);color:#cdbd9f;padding:26px 16px;text-align:center;font-size:14px}footer b{color:#f3e6cc}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--dark);color:#f3e6cc;padding:10px 20px;border-radius:12px;font-weight:700;z-index:99;transition:.3s;opacity:0;pointer-events:none}#toast.on{transform:translateX(-50%);opacity:1}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+@media(max-width:820px){.hero{grid-template-columns:1fr;padding:28px 20px}.hero .art{font-size:70px}.pd,.cartwrap{grid-template-columns:1fr}.frm{grid-template-columns:1fr}.hd{flex-wrap:wrap}.srch{order:5;flex-basis:100%;max-width:none}.logo small{display:none}}
+</style>
+</head>
+<body>
+<div class="topnote" id="topnote"></div>
+<header><div class="hd">
+<a class="logo" href="#/"><img src="logo.svg" alt="Tk Classic"><span>Tk Classic<small>CLASSIC STYLE</small></span></a>
+<form class="srch" id="sf"><input id="sq" autocomplete="off"><button type="submit">🔍</button></form>
+<button class="ib" id="lang"></button>
+<a class="ib" href="#/cart" id="cartb">🛒 <span id="cl"></span><span class="bd" id="cc">0</span></a>
+</div><nav id="cats"></nav></header>
+<main id="app"></main>
+<footer id="foot"></footer>
+<div id="toast"></div>
+<script>
+const CATS=[
+['casual','كاجوال','Casual','👕',30],['home','بيتي','Homewear','🏠',200],['pajamas','بيجامات','Pajamas','🌙',250],['abayas','عبايات','Abayas','🧕',280],['lingerie','لانجري','Lingerie','🎀',330],['bags','شنط','Bags','👜',20],['accessories','اكسسوارات','Accessories','💍',45],['shoes','أحذية','Shoes','👟',210],['furnishings','مفروشات','Home Furnishings','🛏️',170],['housewares','أدوات منزلية','Housewares','🍳',10],['makeup','ميكب','Makeup','💄',345],['tarha','طرح','Hijabs & Scarves','🧣',300],['kids','أطفالي','Kids','🧸',190]];
+const RAW={
+casual:[['تيشيرت قطن','Cotton T-Shirt',250],['جينز واسع','Wide-Leg Jeans',650],['قميص كتان','Linen Shirt',480],['هودي كاجوال','Casual Hoodie',550],['بنطلون جوجر','Jogger Pants',380],['جاكيت دينم','Denim Jacket',790]],
+home:[['طقم بيتي قطن','Cotton Home Set',420],['روب حمام','Bathrobe',520],['تيشيرت منزلي','Lounge Tee',190],['شورت بيتي','Home Shorts',160],['كارديجان منزلي','Home Cardigan',450],['جلابية بيتي','Home Jalabiya',480]],
+pajamas:[['بيجامة ستان','Satin Pajama Set',590],['بيجامة قطن مخططة','Striped Cotton Pajamas',440],['بيجامة فليس شتوي','Fleece Winter Pajamas',620],['بيجامة قصيرة','Short Pajama Set',360],['بيجامة دانتيل','Lace Pajama Set',650],['بيجامة طبعة بناتي','Girly Print Pajamas',390]],
+abayas:[['عباية كريب سادة','Plain Crepe Abaya',980],['عباية مطرزة','Embroidered Abaya',1450],['عباية كلوش','Flared Abaya',1150],['عباية بشت','Bisht Abaya',1690],['عباية بجيوب','Abaya with Pockets',890],['عباية كتان صيفي','Summer Linen Abaya',780]],
+lingerie:[['طقم دانتيل','Lace Set',520],['قميص نوم ستان','Satin Nightgown',640],['روب دانتيل','Lace Robe',590],['بادي دانتيل','Lace Bodysuit',450],['طقم قطن مريح','Comfort Cotton Set',330],['قميص نوم قصير','Short Chemise',480]],
+bags:[['شنطة كروس','Crossbody Bag',520],['شنطة يد جلد','Leather Handbag',890],['شنطة ظهر','Backpack',640],['شنطة كتف','Shoulder Bag',710],['محفظة نسائية','Women\'s Wallet',290],['شنطة سفر صغيرة','Mini Travel Bag',760]],
+accessories:[['سلسلة ستانلس','Stainless Chain',190],['حلق دائري','Gold-Tone Hoops',120],['إسورة','Bracelet',150],['طقم إكسسوار','Accessory Set',340],['نظارة شمس','Sunglasses',310],['حزام جلد','Leather Belt',260]],
+shoes:[['صندل مريح','Comfy Sandals',450],['سنيكرز أبيض','White Sneakers',890],['بوت شتوي','Winter Boots',1050],['كوتشي رياضي','Sport Shoes',780],['شبشب بيت','House Slippers',140],['حذاء كلاسيك بكعب','Classic Heels',690]],
+furnishings:[['طقم ملايات سرير','Bed Sheet Set',850],['لحاف','Comforter',1250],['مخدة طبية','Medical Pillow',320],['بطانية فليس','Fleece Blanket',680],['ستارة بلاك أوت','Blackout Curtain',740],['سجادة صغيرة','Area Rug',960]],
+housewares:[['طقم أكواب','Glass Set',280],['طقم حلل','Cookware Set',1650],['علب حفظ الطعام','Storage Containers',240],['سلة غسيل','Laundry Basket',210],['أدوات مطبخ سيليكون','Silicone Utensils',190],['طقم صحون','Dinner Set',1350]],
+makeup:[['أحمر شفاه مات','Matte Lipstick',160],['باليت ظلال','Eyeshadow Palette',380],['كونسيلر','Concealer',210],['ماسكارا','Mascara',190],['بودرة تثبيت','Setting Powder',240],['طقم فرش ميكب','Brush Set',350]],
+tarha:[['طرحة شيفون','Chiffon Scarf',120],['طرحة قطن','Cotton Hijab',100],['طرحة حرير','Silk Scarf',230],['طرحة جيرسي','Jersey Hijab',90],['إيشارب مطبوع','Printed Shawl',180],['طقم طرحة وكاب','Hijab & Cap Set',140]],
+kids:[['طقم أطفال قطن','Kids Cotton Set',260],['فستان بناتي','Girls Dress',340],['بدلة ولادي','Boys Outfit',420],['جاكيت أطفال','Kids Jacket',380],['حذاء أطفال','Kids Shoes',310],['بيجامة أطفال','Kids Pajamas',230]]};
+const SZ={casual:['S','M','L','XL','XXL'],home:['S','M','L','XL'],pajamas:['S','M','L','XL'],lingerie:['S','M','L','XL'],abayas:['52','54','56','58','60'],shoes:['36','37','38','39','40','41'],kids:['2-4','4-6','6-8','8-10','10-12']};
+const COL=[['أسود','Black','#1f1a17'],['بيج','Beige','#d8c3a5'],['عنابي','Burgundy','#7b2d3b'],['كحلي','Navy','#22345c'],['زيتي','Olive','#6b705c'],['وردي','Rose','#d99bab']];
+const EM={casual:['👕','👖','👔','🧥','🩳','🧥'],shoes:['🩴','👟','🥾','👟','🩴','👠'],bags:['👜','👜','🎒','👛','👛','🧳'],accessories:['📿','💍','📿','💎','🕶️','🪢'],tarha:['🧣','🧕','🧣','🧕','🧣','🧢'],makeup:['💄','🎨','🖌️','👁️','🌸','🖌️'],housewares:['🥛','🍲','🥡','🧺','🍴','🍽️'],furnishings:['🛏️','🛌','😴','🧸','🪟','🟫']};
+const PROD=[];CATS.forEach(c=>RAW[c[0]].forEach((r,i)=>{const old=i%3===1?Math.round(r[2]*1.25/10)*10:0;PROD.push({id:c[0]+(i+1),c:c[0],n:[r[0],r[1]],p:r[2],o:old,e:(EM[c[0]]||[c[3]])[i]||c[3],h:(c[4]+i*14)%360,r:(4.2+((i*7+c[1].length)%9)/10).toFixed(1),rv:20+((i*37+c[1].length*11)%180),sz:SZ[c[0]]||null,col:['tarha','makeup','bags','accessories','abayas','casual','home','pajamas','lingerie','kids','furnishings'].includes(c[0])?COL.slice(0,c[0]==='makeup'?5:6):null})}));
+const T={
+ar:{note:'🚚 شحن مجاني للطلبات فوق 1500 ج.م · الدفع عند الاستلام متاح',search:'ابحث عن منتج…',cart:'السلة',home:'الرئيسية',all:'كل الأقسام',shop:'تسوّقي الآن',heroT:'أناقة <span>كلاسيك</span> لكل يوم',heroP:'أزياء وبيتيات وعبايات ولانجري وشنط وأحذية ومفروشات وأدوات منزلية وميكب وطرح وأطفالي — كل ده في مكان واحد.',cats:'تسوقي حسب القسم',best:'الأكثر مبيعًا',deals:'عروض مميزة',viewall:'عرض الكل ›',items:'منتج',sort:'ترتيب',s0:'الأحدث',s1:'السعر: الأقل',s2:'السعر: الأعلى',s3:'الأعلى تقييمًا',add:'أضف للسلة',added:'تمت الإضافة للسلة ✔',size:'المقاس',color:'اللون',qty:'الكمية',buy:'اشتري الآن',details:['خامات مريحة بجودة عالية','متاح بعدة ألوان ومقاسات','استبدال واسترجاع خلال 14 يوم','صور المنتج توضيحية — الموقع تجريبي'],related:'منتجات مشابهة',cartT:'سلة التسوق',empty:'السلة فاضية',empty2:'ابدئي بإضافة منتجات من الأقسام',sub:'المجموع الفرعي',disc:'الخصم',ship:'الشحن',free:'مجاني',total:'الإجمالي',coupon:'كود الخصم',apply:'تطبيق',cok:'تم تطبيق خصم 10% ✔',cbad:'كود غير صحيح (جرّب TK10)',checkout:'إتمام الشراء',remove:'حذف',egp:'ج.م',cont:'متابعة التسوق',chk:'إتمام الطلب',st1:'السلة',st2:'البيانات والدفع',st3:'التأكيد',name:'الاسم بالكامل',phone:'رقم الموبايل',gov:'المحافظة',city:'المنطقة / المدينة',addr:'العنوان بالتفصيل',notes:'ملاحظات (اختياري)',payT:'طريقة الدفع',cod:'💵 الدفع عند الاستلام',card:'💳 بطاقة ائتمان (تجريبي)',wal:'📱 محفظة إلكترونية',cardno:'رقم البطاقة',exp:'MM/YY',place:'تأكيد الطلب',eName:'اكتبي الاسم',ePhone:'رقم موبايل مصري صحيح (01XXXXXXXXX)',eGov:'اختاري المحافظة',eAddr:'اكتبي العنوان',eCard:'رقم بطاقة غير صحيح',doneT:'تم استلام طلبك!',doneP:'هنتواصل معاك على الموبايل لتأكيد الطلب.',ordno:'رقم الطلب',eta:'التوصيل المتوقع خلال 2–4 أيام عمل',demo:'هذا موقع تجريبي — لا يتم تنفيذ طلبات حقيقية.',res:'نتائج البحث عن',none:'مفيش نتائج',pk1:'توصيل لكل المحافظات',pk2:'دفع عند الاستلام',pk3:'استبدال خلال 14 يوم',pk4:'تغليف هدايا',pk1s:'من 2 لـ 4 أيام',pk2s:'ادفعي لما يوصلك',pk3s:'سهل وبدون تعقيد',pk4s:'بتكلفة بسيطة',foot:'© Tk Classic — موقع تجريبي بأسعار وبيانات توضيحية',off:'خصم',rev:'تقييم',govs:['القاهرة','الجيزة','الإسكندرية','القليوبية','الدقهلية','الشرقية','الغربية','المنوفية','أسيوط','سوهاج','الأقصر','أسوان']},
+en:{note:'🚚 Free shipping over 1,500 EGP · Cash on delivery available',search:'Search products…',cart:'Cart',home:'Home',all:'All categories',shop:'Shop now',heroT:'<span>Classic</span> style for every day',heroP:'Fashion, homewear, abayas, lingerie, bags, shoes, furnishings, housewares, makeup, hijabs and kids — all in one place.',cats:'Shop by category',best:'Best sellers',deals:'Featured deals',viewall:'View all ›',items:'items',sort:'Sort',s0:'Newest',s1:'Price: low to high',s2:'Price: high to low',s3:'Top rated',add:'Add to cart',added:'Added to cart ✔',size:'Size',color:'Color',qty:'Quantity',buy:'Buy now',details:['Comfortable, high-quality materials','Available in several colors and sizes','14-day exchange and returns','Product images are illustrative — demo site'],related:'You may also like',cartT:'Shopping cart',empty:'Your cart is empty',empty2:'Start by adding products from the categories',sub:'Subtotal',disc:'Discount',ship:'Shipping',free:'Free',total:'Total',coupon:'Discount code',apply:'Apply',cok:'10% discount applied ✔',cbad:'Invalid code (try TK10)',checkout:'Checkout',remove:'Remove',egp:'EGP',cont:'Continue shopping',chk:'Checkout',st1:'Cart',st2:'Details & payment',st3:'Confirmation',name:'Full name',phone:'Mobile number',gov:'Governorate',city:'Area / city',addr:'Detailed address',notes:'Notes (optional)',payT:'Payment method',cod:'💵 Cash on delivery',card:'💳 Credit card (demo)',wal:'📱 E-wallet',cardno:'Card number',exp:'MM/YY',place:'Place order',eName:'Enter your name',ePhone:'Valid Egyptian mobile (01XXXXXXXXX)',eGov:'Choose a governorate',eAddr:'Enter your address',eCard:'Invalid card number',doneT:'We received your order!',doneP:'We will call you on your mobile to confirm it.',ordno:'Order number',eta:'Estimated delivery within 2–4 business days',demo:'This is a demo site — no real orders are placed.',res:'Search results for',none:'No results',pk1:'Delivery to all governorates',pk2:'Cash on delivery',pk3:'14-day exchange',pk4:'Gift wrapping',pk1s:'2 to 4 days',pk2s:'Pay when it arrives',pk3s:'Easy, no hassle',pk4s:'Small extra fee',foot:'© Tk Classic — demo site with illustrative prices and data',off:'OFF',rev:'reviews',govs:['Cairo','Giza','Alexandria','Qalyubia','Dakahlia','Sharqia','Gharbia','Monufia','Asyut','Sohag','Luxor','Aswan']}};
+let L=localStorage.tk_lang||'ar',cart=[];try{cart=JSON.parse(localStorage.tk_cart||'[]')}catch(e){}
+let coupon=localStorage.tk_coupon||'',lastOrder=null;try{lastOrder=JSON.parse(localStorage.tk_order||'null')}catch(e){}
+const t=k=>T[L][k],$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=x=>(+x).toLocaleString(L==='ar'?'ar-EG':'en-US'),M=x=>N(Math.round(x))+' '+t('egp');
+const catN=c=>{const x=CATS.find(y=>y[0]===c);return L==='ar'?x[1]:x[2]},prod=id=>PROD.find(p=>p.id===id),pn=p=>p.n[L==='ar'?0:1];
+const save=()=>{try{localStorage.tk_cart=JSON.stringify(cart);localStorage.tk_coupon=coupon;localStorage.tk_lang=L}catch(e){}};
+function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('on'),1800)}
+function totals(){const sub=cart.reduce((a,i)=>a+prod(i.id).p*i.q,0),disc=coupon==='TK10'?Math.round(sub*.1):0,ship=sub-disc>=1500||!sub?0:50;return{sub,disc,ship,total:sub-disc+ship,n:cart.reduce((a,i)=>a+i.q,0)}}
+function addCart(id,size,color,q=1,quiet){const p=prod(id);size=size??(p.sz?p.sz[0]:'');color=color??(p.col?0:-1);const f=cart.find(i=>i.id===id&&i.s===size&&i.k===color);if(f)f.q+=q;else cart.push({id,s:size,k:color,q});save();hdr();if(!quiet)toast(t('added'));const b=$('#cc');b.classList.remove('bump');void b.offsetWidth;b.classList.add('bump')}
+const img=(p,big)=>`<div class="pimg" style="--h:${p.h}"><span>${p.e}</span></div>`;
+const price=p=>`<span class="price">${M(p.p)}${p.o?`<s>${M(p.o)}</s>`:''}</span>`;
+function cardH(p){return `<div class="card"><a href="#/p/${p.id}">${p.o?`<span class="tag">-${Math.round((1-p.p/p.o)*100)}%</span>`:''}${img(p)}</a><div class="in"><a class="nm" href="#/p/${p.id}">${esc(pn(p))}</a><span class="ct">${esc(catN(p.c))}</span><span class="stars">★ ${p.r}<span>(${p.rv})</span></span>${price(p)}<button class="btn sm add" data-add="${p.id}">🛒 ${t('add')}</button></div></div>`}
+function hdr(){document.documentElement.lang=L;document.documentElement.dir=L==='ar'?'rtl':'ltr';$('#topnote').textContent=t('note');$('#sq').placeholder=t('search');$('#lang').textContent=L==='ar'?'English':'العربية';$('#cl').textContent=t('cart');$('#cc').textContent=totals().n;$('#foot').innerHTML=`<b>Tk Classic</b><br>${t('foot')}`;const r=route();$('#cats').innerHTML=`<a href="#/" class="${r[0]===''?'on':''}">${t('home')}</a>`+CATS.map(c=>`<a href="#/c/${c[0]}" class="${r[0]==='c'&&r[1]===c[0]?'on':''}">${c[3]} ${L==='ar'?c[1]:c[2]}</a>`).join('')}
+const route=()=>{const h=location.hash.replace(/^#\/?/,'').split('/');return [h[0]||'',decodeURIComponent(h.slice(1).join('/'))]};
+const steps=n=>`<div class="steps">${[t('st1'),t('st2'),t('st3')].map((s,i)=>`<span class="${i+1===n?'on':''}">${i+1}. ${s}</span>`).join('')}</div>`;
+let SORT='0';
+function sortL(l){const a=l.slice();if(SORT==='1')a.sort((x,y)=>x.p-y.p);if(SORT==='2')a.sort((x,y)=>y.p-x.p);if(SORT==='3')a.sort((x,y)=>y.r-x.r);return a}
+const V={
+'':()=>{const best=CATS.slice(0,8).map(c=>PROD.find(p=>p.c===c[0])),deals=PROD.filter(p=>p.o).slice(0,8);return `<div class="hero"><div><h1>${t('heroT')}</h1><p>${t('heroP')}</p><a class="btn" href="#/c/casual">${t('shop')}</a></div><div class="art">👗👜👟</div></div>
+ <h2 class="sec">${t('cats')}</h2><div class="tiles">${CATS.map(c=>`<a class="tile" href="#/c/${c[0]}" style="--h:${c[4]}"><div class="em">${c[3]}</div>${L==='ar'?c[1]:c[2]}<small>${RAW[c[0]].length} ${t('items')}</small></a>`).join('')}</div>
+ <h2 class="sec">${t('best')}</h2><div class="grid">${best.map(cardH).join('')}</div>
+ <h2 class="sec">${t('deals')}</h2><div class="grid">${deals.map(cardH).join('')}</div>
+ <div class="perks">${[1,2,3,4].map(i=>`<div>${['🚚','💵','🔄','🎁'][i-1]} ${t('pk'+i)}<small>${t('pk'+i+'s')}</small></div>`).join('')}</div>`},
+c:id=>{const c=CATS.find(x=>x[0]===id);if(!c)return V[''](); const l=sortL(PROD.filter(p=>p.c===id));return `<div class="crumb"><a href="#/">${t('home')}</a> › ${catN(id)}</div><h1 style="margin:0">${c[3]} ${catN(id)}</h1><div class="bar"><span class="n">${l.length} ${t('items')}</span><label>${t('sort')} <select id="sort">${['0','1','2','3'].map(v=>`<option value="${v}"${v===SORT?' selected':''}>${t('s'+v)}</option>`).join('')}</select></label></div><div class="grid">${l.map(cardH).join('')}</div>`},
+s:q=>{const x=q.trim().toLowerCase(),l=PROD.filter(p=>p.n.join(' ').toLowerCase().includes(x)||catN(p.c).toLowerCase().includes(x));return `<div class="crumb"><a href="#/">${t('home')}</a></div><h1 style="margin:0">${t('res')} «${esc(q)}»</h1><div class="bar"><span class="n">${l.length} ${t('items')}</span></div>${l.length?`<div class="grid">${l.map(cardH).join('')}</div>`:`<div class="empty">${t('none')}</div>`}`},
+p:id=>{const p=prod(id);if(!p)return V[''](); PS={s:p.sz?p.sz[0]:'',k:p.col?0:-1,q:1};const rel=PROD.filter(x=>x.c===p.c&&x.id!==p.id).slice(0,4);
+ return `<div class="crumb"><a href="#/">${t('home')}</a> › <a href="#/c/${p.c}">${catN(p.c)}</a> › ${esc(pn(p))}</div><div class="pd"><div>${p.o?`<span class="tag" style="position:static;display:inline-block;margin-bottom:6px">-${Math.round((1-p.p/p.o)*100)}% ${t('off')}</span>`:''}${img(p,1)}</div><div><h1>${esc(pn(p))}</h1><span class="stars">★ ${p.r} <span>(${p.rv} ${t('rev')})</span></span><div class="price">${M(p.p)}${p.o?`<s>${M(p.o)}</s>`:''}</div>
+ ${p.sz?`<div class="lbl">${t('size')}</div><div class="chips" id="szs">${p.sz.map((s,i)=>`<button class="chip${i===0?' on':''}" data-sz="${s}">${s}</button>`).join('')}</div>`:''}
+ ${p.col?`<div class="lbl">${t('color')}</div><div class="chips" id="cls">${p.col.map((c,i)=>`<button class="sw${i===0?' on':''}" data-k="${i}" style="background:${c[2]}" title="${c[L==='ar'?0:1]}"></button>`).join('')}</div>`:''}
+ <div class="lbl">${t('qty')}</div><div class="qty"><button data-pq="-1">−</button><b id="pq">1</b><button data-pq="1">+</button></div>
+ <div style="margin:18px 0;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-padd="${p.id}">🛒 ${t('add')}</button><button class="btn dk" data-pbuy="${p.id}">${t('buy')}</button></div><ul class="feat">${t('details').map(d=>`<li>${d}</li>`).join('')}</ul></div></div>
+ <h2 class="sec">${t('related')}</h2><div class="grid">${rel.map(cardH).join('')}</div>`},
+cart:()=>{const T0=totals();if(!cart.length)return `${steps(1)}<div class="empty"><div style="font-size:60px">🛒</div><h2>${t('empty')}</h2><p>${t('empty2')}</p><a class="btn" href="#/">${t('cont')}</a></div>`;
+ return `${steps(1)}<h1 style="margin:0 0 10px">${t('cartT')}</h1><div class="cartwrap"><div class="box">${cart.map((i,x)=>{const p=prod(i.id);return `<div class="li"><a href="#/p/${p.id}">${img(p)}</a><div><a class="nm" href="#/p/${p.id}"><b>${esc(pn(p))}</b></a><div class="ct" style="color:var(--mute);font-size:13px">${i.s?t('size')+': '+i.s+' · ':''}${i.k>=0?t('color')+': '+p.col[i.k][L==='ar'?0:1]+' · ':''}${M(p.p)}</div><div class="qty" style="margin-top:6px"><button data-cq="${x}:-1">−</button><b>${i.q}</b><button data-cq="${x}:1">+</button></div></div><div style="text-align:end"><b>${M(p.p*i.q)}</b><br><button class="x" data-crm="${x}" title="${t('remove')}">🗑</button></div></div>`}).join('')}<div style="margin-top:12px"><a class="btn o sm" href="#/">‹ ${t('cont')}</a></div></div>${sumBox(T0,true)}</div>`},
+checkout:()=>{if(!cart.length)return V.cart();const T0=totals();return `${steps(2)}<h1 style="margin:0 0 10px">${t('chk')}</h1><div class="cartwrap"><div class="box"><div class="frm" id="fm"><label>${t('name')}<input id="f_n" autocomplete="name"><span class="err" id="e_n"></span></label><label>${t('phone')}<input id="f_p" inputmode="numeric" placeholder="01XXXXXXXXX" autocomplete="tel"><span class="err" id="e_p"></span></label><label>${t('gov')}<select id="f_g"><option value="">—</option>${t('govs').map(g=>`<option>${g}</option>`).join('')}</select><span class="err" id="e_g"></span></label><label>${t('city')}<input id="f_c"></label><label class="w">${t('addr')}<textarea id="f_a" rows="2"></textarea><span class="err" id="e_a"></span></label><label class="w">${t('notes')}<input id="f_t"></label>
+ <div class="w"><b>${t('payT')}</b><div class="pay" style="margin-top:6px">${[['cod','cod'],['card','card'],['wal','wal']].map((x,i)=>`<label class="${i===0?'on':''}"><input type="radio" name="pm" value="${x[0]}"${i===0?' checked':''}> ${t(x[1])}</label>`).join('')}</div><div id="cardbox" style="display:none;margin-top:8px" class="frm"><label>${t('cardno')}<input id="f_cn" inputmode="numeric" placeholder="4242 4242 4242 4242"><span class="err" id="e_cn"></span></label><label>${t('exp')}<input id="f_ce" placeholder="MM/YY"></label></div></div></div></div>${sumBox(T0,false)}</div>`},
+done:()=>{if(!lastOrder)return V[''](); const o=lastOrder;return `${steps(3)}<div class="done"><div class="ok">✅</div><h1>${t('doneT')}</h1><p>${t('doneP')}</p><div>${t('ordno')}</div><div class="no">${o.no}</div><p>${t('eta')}</p><div class="box" style="max-width:520px;margin:14px auto;text-align:start">${o.items.map(i=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span>${esc(pn(prod(i.id)))} × ${i.q}</span><b>${M(prod(i.id).p*i.q)}</b></div>`).join('')}<div class="sum"><div class="tot"><span>${t('total')}</span><span>${M(o.total)}</span></div></div><div style="color:var(--mute);font-size:13px">${esc(o.name)} · ${esc(o.phone)} · ${esc(o.gov)}</div></div><a class="btn" href="#/">${t('cont')}</a><p style="color:var(--mute);font-size:13px">${t('demo')}</p></div>`}};
+function sumBox(T0,toCheckout){return `<div class="box sum"><div><span>${t('sub')} (${T0.n})</span><b>${M(T0.sub)}</b></div>${T0.disc?`<div class="ok"><span>${t('disc')}</span><b>- ${M(T0.disc)}</b></div>`:''}<div><span>${t('ship')}</span><b>${T0.ship?M(T0.ship):t('free')}</b></div><div class="tot"><span>${t('total')}</span><span>${M(T0.total)}</span></div>
+ ${toCheckout?`<div style="display:flex;gap:6px;margin:12px 0 4px"><input id="cp" placeholder="${t('coupon')}" value="${esc(coupon)}" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit"><button class="btn sm dk" data-cp="1">${t('apply')}</button></div><div class="err" id="cpm" style="color:${coupon==='TK10'?'var(--ok)':'var(--rose)'}">${coupon==='TK10'?t('cok'):''}</div><a class="btn" style="display:block;text-align:center;margin-top:10px" href="#/checkout">${t('checkout')} ›</a>`:`<button class="btn" style="width:100%;margin-top:12px" data-place="1">${t('place')} ✔</button><div class="err" style="color:var(--mute);margin-top:6px">${t('demo')}</div>`}</div>`}
+let PS={s:'',k:-1,q:1};
+function render(){const r=route();hdr();const f=V[r[0]==='c'?'c':r[0]==='s'?'s':r[0]==='p'?'p':r[0]];$('#app').innerHTML=f?f(r[1]):V[''](); window.scrollTo(0,0)}
+addEventListener('hashchange',render);
+$('#sf').addEventListener('submit',e=>{e.preventDefault();const q=$('#sq').value.trim();if(q)location.hash='#/s/'+encodeURIComponent(q)});
+$('#lang').addEventListener('click',()=>{L=L==='ar'?'en':'ar';save();const y=scrollY;render();scrollTo(0,y)});
+document.addEventListener('click',e=>{const b=e.target.closest('button,[data-add]');if(!b)return;const d=b.dataset;
+ if(d.add){addCart(d.add);return}
+ if(d.sz!==undefined){PS.s=d.sz;document.querySelectorAll('#szs .chip').forEach(x=>x.classList.toggle('on',x===b));return}
+ if(d.k!==undefined&&b.classList.contains('sw')){PS.k=+d.k;document.querySelectorAll('#cls .sw').forEach(x=>x.classList.toggle('on',x===b));return}
+ if(d.pq){PS.q=Math.max(1,PS.q+ +d.pq);$('#pq').textContent=PS.q;return}
+ if(d.padd){addCart(d.padd,PS.s,PS.k,PS.q);return}
+ if(d.pbuy){addCart(d.pbuy,PS.s,PS.k,PS.q,true);location.hash='#/cart';return}
+ if(d.cq){const[x,v]=d.cq.split(':');cart[+x].q=Math.max(1,cart[+x].q+ +v);save();render();return}
+ if(d.crm!==undefined){cart.splice(+d.crm,1);save();render();return}
+ if(d.cp){coupon=$('#cp').value.trim().toUpperCase()==='TK10'?'TK10':'';save();render();if(!coupon)$('#cpm').textContent=t('cbad');return}
+ if(d.place){place();return}});
+document.addEventListener('change',e=>{if(e.target.id==='sort'){SORT=e.target.value;render()}if(e.target.name==='pm'){document.querySelectorAll('.pay label').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));$('#cardbox').style.display=e.target.value==='card'?'grid':'none'}});
+function place(){const v=id=>$(id).value.trim(),bad=(id,e,m)=>{$(id).classList.add('bad');$(e).textContent=m;return 1};document.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));document.querySelectorAll('.err').forEach(x=>{if(x.id.startsWith('e_'))x.textContent=''});let n=0;
+ if(v('#f_n').length<3)n+=bad('#f_n','#e_n',t('eName'));if(!/^01[0125]\d{8}$/.test(v('#f_p').replace(/\s/g,'')))n+=bad('#f_p','#e_p',t('ePhone'));if(!v('#f_g'))n+=bad('#f_g','#e_g',t('eGov'));if(v('#f_a').length<5)n+=bad('#f_a','#e_a',t('eAddr'));
+ const pm=document.querySelector('input[name=pm]:checked').value;if(pm==='card'&&v('#f_cn').replace(/\s/g,'').length<12)n+=bad('#f_cn','#e_cn',t('eCard'));if(n){const f=document.querySelector('.bad');if(f)f.scrollIntoView({block:'center'});return}
+ const T0=totals();lastOrder={no:'TK-'+(100000+Math.floor(Math.random()*899999)),items:cart.map(i=>({...i})),total:T0.total,name:v('#f_n'),phone:v('#f_p'),gov:v('#f_g'),pm};
+ try{localStorage.tk_order=JSON.stringify(lastOrder)}catch(e){}cart=[];coupon='';save();location.hash='#/done'}
+render();
+</script>
+</body>
+</html>
