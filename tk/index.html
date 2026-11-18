@@ -2,9 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Tk Classic | تي كي كلاسيك</title>
-<meta name="description" content="Tk Classic: أزياء وبيتيات وعبايات ولانجري وشنط وأحذية ومفروشات وأدوات منزلية وميكب وطرح وأطفالي — موقع تجريبي.">
+<meta name="theme-color" content="#1f1a17"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tk Classic"><link rel="apple-touch-icon" href="logo.svg"><meta name="description" content="Tk Classic: أزياء وبيتيات وعبايات ولانجري وشنط وأحذية ومفروشات وأدوات منزلية وميكب وطرح وأطفالي — موقع تجريبي.">
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -87,6 +87,11 @@ h2.sec{font-size:24px;margin:30px 0 12px;display:flex;align-items:center;gap:10p
 footer{background:var(--dark);color:#cdbd9f;padding:26px 16px;text-align:center;font-size:14px}footer b{color:#f3e6cc}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--dark);color:#f3e6cc;padding:10px 20px;border-radius:12px;font-weight:700;z-index:99;transition:.3s;opacity:0;pointer-events:none}#toast.on{transform:translateX(-50%);opacity:1}
 .empty{text-align:center;color:var(--mute);padding:40px 10px}
+nav.tabbar{display:none}
+@media(max-width:820px){nav.tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav.tabbar a,nav.tabbar button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:0;font:inherit;font-size:11px;font-weight:700;color:var(--mute);position:relative;padding:2px 0}
+nav.tabbar .ti{font-size:22px;line-height:1.2}nav.tabbar .on{color:var(--gold)}nav.tabbar .bd{top:-2px;inset-inline-end:calc(50% - 22px)}
+main{padding-bottom:84px}footer{padding-bottom:90px}.hd .ib#cartb{display:none}.topnote{font-size:12px}#toast{bottom:84px}.grid{grid-template-columns:repeat(2,1fr);gap:10px}.tiles{grid-template-columns:repeat(3,1fr);gap:8px}.tile{padding:10px 4px;font-size:13px}.tile .em{width:52px;height:52px;font-size:26px}.tile small{display:none}h2.sec{font-size:20px}.pd .pimg{font-size:120px}.pd h1{font-size:22px}.hero .art{display:none}.hero{padding:24px 18px}.hero h1{font-size:26px}.hero p{font-size:14px}}
 @media(max-width:820px){.hero{grid-template-columns:1fr;padding:28px 20px}.hero .art{font-size:70px}.pd,.cartwrap{grid-template-columns:1fr}.frm{grid-template-columns:1fr}.hd{flex-wrap:wrap}.srch{order:5;flex-basis:100%;max-width:none}.logo small{display:none}}
 </style>
 </head>
@@ -100,7 +105,7 @@ footer{background:var(--dark);color:#cdbd9f;padding:26px 16px;text-align:center;
 </div><nav id="cats"></nav></header>
 <main id="app"></main>
 <footer id="foot"></footer>
-<div id="toast"></div>
+<nav class="tabbar" id="tabbar"></nav><div id="toast"></div>
 <script>
 const CATS=[
 ['casual','كاجوال','Casual','👕',30],['home','بيتي','Homewear','🏠',200],['pajamas','بيجامات','Pajamas','🌙',250],['abayas','عبايات','Abayas','🧕',280],['lingerie','لانجري','Lingerie','🎀',330],['bags','شنط','Bags','👜',20],['accessories','اكسسوارات','Accessories','💍',45],['shoes','أحذية','Shoes','👟',210],['furnishings','مفروشات','Home Furnishings','🛏️',170],['housewares','أدوات منزلية','Housewares','🍳',10],['makeup','ميكب','Makeup','💄',345],['tarha','طرح','Hijabs & Scarves','🧣',300],['kids','أطفالي','Kids','🧸',190]];
@@ -137,12 +142,14 @@ function addCart(id,size,color,q=1,quiet){const p=prod(id);size=size??(p.sz?p.sz
 const img=(p,big)=>`<div class="pimg" style="--h:${p.h}"><span>${p.e}</span></div>`;
 const price=p=>`<span class="price">${M(p.p)}${p.o?`<s>${M(p.o)}</s>`:''}</span>`;
 function cardH(p){return `<div class="card"><a href="#/p/${p.id}">${p.o?`<span class="tag">-${Math.round((1-p.p/p.o)*100)}%</span>`:''}${img(p)}</a><div class="in"><a class="nm" href="#/p/${p.id}">${esc(pn(p))}</a><span class="ct">${esc(catN(p.c))}</span><span class="stars">★ ${p.r}<span>(${p.rv})</span></span>${price(p)}<button class="btn sm add" data-add="${p.id}">🛒 ${t('add')}</button></div></div>`}
-function hdr(){document.documentElement.lang=L;document.documentElement.dir=L==='ar'?'rtl':'ltr';$('#topnote').textContent=t('note');$('#sq').placeholder=t('search');$('#lang').textContent=L==='ar'?'English':'العربية';$('#cl').textContent=t('cart');$('#cc').textContent=totals().n;$('#foot').innerHTML=`<b>Tk Classic</b><br>${t('foot')}`;const r=route();$('#cats').innerHTML=`<a href="#/" class="${r[0]===''?'on':''}">${t('home')}</a>`+CATS.map(c=>`<a href="#/c/${c[0]}" class="${r[0]==='c'&&r[1]===c[0]?'on':''}">${c[3]} ${L==='ar'?c[1]:c[2]}</a>`).join('')}
+function hdr(){const rr=route();$('#tabbar').innerHTML=tab('#/','🏠',t('home'),rr[0]==='')+tab('#/cats','🗂️',t('all'),rr[0]==='cats'||rr[0]==='c')+tab('#/cart','🛒',t('cart'),['cart','checkout','done'].includes(rr[0]),totals().n||'')+`<button id="tl"><span class="ti">🌐</span>${L==='ar'?'EN':'عربي'}</button>`;document.documentElement.lang=L;document.documentElement.dir=L==='ar'?'rtl':'ltr';$('#topnote').textContent=t('note');$('#sq').placeholder=t('search');$('#lang').textContent=L==='ar'?'English':'العربية';$('#cl').textContent=t('cart');$('#cc').textContent=totals().n;$('#foot').innerHTML=`<b>Tk Classic</b><br>${t('foot')}`;const r=route();$('#cats').innerHTML=`<a href="#/" class="${r[0]===''?'on':''}">${t('home')}</a>`+CATS.map(c=>`<a href="#/c/${c[0]}" class="${r[0]==='c'&&r[1]===c[0]?'on':''}">${c[3]} ${L==='ar'?c[1]:c[2]}</a>`).join('')}
 const route=()=>{const h=location.hash.replace(/^#\/?/,'').split('/');return [h[0]||'',decodeURIComponent(h.slice(1).join('/'))]};
 const steps=n=>`<div class="steps">${[t('st1'),t('st2'),t('st3')].map((s,i)=>`<span class="${i+1===n?'on':''}">${i+1}. ${s}</span>`).join('')}</div>`;
 let SORT='0';
+const tab=(h,ic,lb,on,badge)=>`<a href="${h}" class="${on?'on':''}"><span class="ti">${ic}</span>${lb}${badge?`<span class="bd">${badge}</span>`:''}</a>`;
 function sortL(l){const a=l.slice();if(SORT==='1')a.sort((x,y)=>x.p-y.p);if(SORT==='2')a.sort((x,y)=>y.p-x.p);if(SORT==='3')a.sort((x,y)=>y.r-x.r);return a}
 const V={
+cats:()=>`<h1 style="margin:0 0 10px">${t('all')}</h1><div class="tiles">${CATS.map(c=>`<a class="tile" href="#/c/${c[0]}" style="--h:${c[4]}"><div class="em">${c[3]}</div>${L==='ar'?c[1]:c[2]}<small>${RAW[c[0]].length} ${t('items')}</small></a>`).join('')}</div>`,
 '':()=>{const best=CATS.slice(0,8).map(c=>PROD.find(p=>p.c===c[0])),deals=PROD.filter(p=>p.o).slice(0,8);return `<div class="hero"><div><h1>${t('heroT')}</h1><p>${t('heroP')}</p><a class="btn" href="#/c/casual">${t('shop')}</a></div><div class="art">👗👜👟</div></div>
  <h2 class="sec">${t('cats')}</h2><div class="tiles">${CATS.map(c=>`<a class="tile" href="#/c/${c[0]}" style="--h:${c[4]}"><div class="em">${c[3]}</div>${L==='ar'?c[1]:c[2]}<small>${RAW[c[0]].length} ${t('items')}</small></a>`).join('')}</div>
  <h2 class="sec">${t('best')}</h2><div class="grid">${best.map(cardH).join('')}</div>
@@ -168,6 +175,7 @@ let PS={s:'',k:-1,q:1};
 function render(){const r=route();hdr();const f=V[r[0]==='c'?'c':r[0]==='s'?'s':r[0]==='p'?'p':r[0]];$('#app').innerHTML=f?f(r[1]):V[''](); window.scrollTo(0,0)}
 addEventListener('hashchange',render);
 $('#sf').addEventListener('submit',e=>{e.preventDefault();const q=$('#sq').value.trim();if(q)location.hash='#/s/'+encodeURIComponent(q)});
+document.addEventListener('click',e=>{if(e.target.closest('#tl'))$('#lang').click()});
 $('#lang').addEventListener('click',()=>{L=L==='ar'?'en':'ar';save();const y=scrollY;render();scrollTo(0,y)});
 document.addEventListener('click',e=>{const b=e.target.closest('button,[data-add]');if(!b)return;const d=b.dataset;
  if(d.add){addCart(d.add);return}
