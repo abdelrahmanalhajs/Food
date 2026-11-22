@@ -6,5 +6,9 @@ contextBridge.exposeInMainWorld('scopeDesktop', {
   latest: () => ipcRenderer.invoke('bk:latest'),
   chooseFolder: () => ipcRenderer.invoke('bk:choose'),
   pickRestore: () => ipcRenderer.invoke('bk:pick'),
-  openFolder: () => ipcRenderer.invoke('bk:open')
+  openFolder: () => ipcRenderer.invoke('bk:open'),
+  encStatus: () => ipcRenderer.invoke('bk:encstatus'),
+  setBackupPassword: (pw) => ipcRenderer.invoke('bk:setpw', pw),
+  checkBackupPassword: (pw) => ipcRenderer.invoke('bk:checkpw', pw),
+  decrypt: (raw, pw) => ipcRenderer.invoke('bk:decrypt', raw, pw)
 });

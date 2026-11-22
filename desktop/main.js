@@ -1,5 +1,6 @@
 // Scope — برنامج سطح المكتب (Electron). بيفتح نفس نظام الويب من ملفات محلية، وبياناته بتتحفظ على الجهاز.
-const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain, safeStorage } = require('electron');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
@@ -62,23 +63,45 @@ function atomicWrite(file, data) { const tmp = file + '.tmp'; fs.writeFileSync(t
 const fmt = (t) => new Date(t).toISOString().slice(0, 16).replace('T', ' ');
 const validBackup = (txt) => { try { const o = JSON.parse(txt); return !!(o && o.ing && o.branches && o.sales); } catch (e) { return false; } };
 function listBackups() { const d = bkDir(); try { return fs.readdirSync(d).filter(f => /^Scope-.*\.json$/.test(f)).map(f => { const s = fs.statSync(path.join(d, f)); return { name: f, mtime: fmt(s.mtimeMs), t: s.mtimeMs, size: s.size }; }).sort((a, b) => b.t - a.t); } catch (e) { return []; } }
+// ---- تشفير النسخ (AES-256-GCM + PBKDF2) — نفس صيغة نسخة المتصفح ----
+let encPw = null;
+function loadEncPw() { try { const c = readCfg(); if (c.encPw && safeStorage.isEncryptionAvailable()) encPw = safeStorage.decryptString(Buffer.from(c.encPw, 'base64')); } catch (e) { encPw = null; } }
+function encPack(pw, txt) { const salt = crypto.randomBytes(16), iv = crypto.randomBytes(12), key = crypto.pbkdf2Sync(pw, salt, 250000, 32, 'sha256'), c = crypto.createCipheriv('aes-256-gcm', key, iv), ct = Buffer.concat([c.update(txt, 'utf8'), c.final()]), tag = c.getAuthTag(); return JSON.stringify({ scope: 1, enc: 'AES-256-GCM', kdf: 'PBKDF2-SHA256', iter: 250000, salt: salt.toString('base64'), iv: iv.toString('base64'), data: Buffer.concat([ct, tag]).toString('base64') }); }
+function encUnpack(pw, o) { const salt = Buffer.from(o.salt, 'base64'), iv = Buffer.from(o.iv, 'base64'), buf = Buffer.from(o.data, 'base64'), tag = buf.subarray(buf.length - 16), ct = buf.subarray(0, buf.length - 16), key = crypto.pbkdf2Sync(pw, salt, o.iter || 250000, 32, 'sha256'), d = crypto.createDecipheriv('aes-256-gcm', key, iv); d.setAuthTag(tag); return Buffer.concat([d.update(ct), d.final()]).toString('utf8'); }
+const isEnv = (o) => !!(o && o.scope === 1 && o.enc && o.data);
+function readBackupFile(file) { const raw = fs.readFileSync(file, 'utf8'); let o; try { o = JSON.parse(raw); } catch (e) { return null; } if (isEnv(o)) { if (encPw) { try { const j = encUnpack(encPw, o); return validBackup(j) ? { json: j } : null; } catch (e) { } } return { encrypted: true, raw }; } return validBackup(raw) ? { json: raw } : null; }
+function reencryptAll() { const d = bkDir(); for (const f of listBackups()) { try { const p = path.join(d, f.name), raw = fs.readFileSync(p, 'utf8'); if (validBackup(raw)) atomicWrite(p, encPack(encPw, raw)); } catch (e) { } } }
+ipcMain.handle('bk:encstatus', () => ({ enabled: !!encPw, persisted: !!readCfg().encPw, available: (() => { try { return safeStorage.isEncryptionAvailable(); } catch (e) { return false; } })() }));
+ipcMain.handle('bk:setpw', (e, pw) => {
+  try {
+    const c = readCfg();
+    if (!pw) { encPw = null; delete c.encPw; writeCfg(c); return { enabled: false }; }
+    if (typeof pw !== 'string' || pw.length < 8) return { enabled: false };
+    encPw = pw; delete c.encPw;
+    try { if (safeStorage.isEncryptionAvailable()) c.encPw = safeStorage.encryptString(pw).toString('base64'); } catch (er) { }
+    writeCfg(c); reencryptAll();
+    return { enabled: true, persisted: !!c.encPw };
+  } catch (err) { return { enabled: false }; }
+});
+ipcMain.handle('bk:checkpw', (e, pw) => !!encPw && typeof pw === 'string' && pw === encPw);
+ipcMain.handle('bk:decrypt', (e, raw, pw) => { try { const j = encUnpack(String(pw), JSON.parse(raw)); return validBackup(j) ? { ok: true, json: j } : { ok: false }; } catch (er) { return { ok: false }; } });
 ipcMain.handle('bk:save', (e, json) => {
   try {
     if (typeof json !== 'string' || !validBackup(json)) return { ok: false };
-    const d = bkDir();
-    atomicWrite(path.join(d, 'Scope-latest.json'), json);
-    atomicWrite(path.join(d, 'Scope-' + stamp() + '.json'), json);
+    const d = bkDir(), out = encPw ? encPack(encPw, json) : json;
+    atomicWrite(path.join(d, 'Scope-latest.json'), out);
+    atomicWrite(path.join(d, 'Scope-' + stamp() + '.json'), out);
     const daily = listBackups().filter(f => /^Scope-\d{4}-\d{2}-\d{2}\.json$/.test(f.name)).sort((a, b) => b.name.localeCompare(a.name));
-    daily.slice(30).forEach(f => { try { fs.unlinkSync(path.join(d, f.name)); } catch (er) {} });
-    return { ok: true, dir: d, at: Date.now() };
+    daily.slice(30).forEach(f => { try { fs.unlinkSync(path.join(d, f.name)); } catch (er) { } });
+    return { ok: true, dir: d, at: Date.now(), encrypted: !!encPw };
   } catch (err) { return { ok: false, error: String(err && err.message) }; }
 });
 ipcMain.handle('bk:info', () => ({ dir: bkDir(), files: listBackups().slice(0, 8).map(({ name, mtime, size }) => ({ name, mtime, size })) }));
-ipcMain.handle('bk:latest', () => { try { const f = listBackups()[0]; if (!f) return null; const json = fs.readFileSync(path.join(bkDir(), f.name), 'utf8'); return validBackup(json) ? { name: f.name, mtime: f.mtime, json } : null; } catch (e) { return null; } });
+ipcMain.handle('bk:latest', () => { try { const f = listBackups()[0]; if (!f) return null; const r = readBackupFile(path.join(bkDir(), f.name)); return r ? { name: f.name, mtime: f.mtime, ...r } : null; } catch (e) { return null; } });
 ipcMain.handle('bk:choose', async () => { const r = await dialog.showOpenDialog(win, { title: 'اختر مجلد النسخ الاحتياطي', properties: ['openDirectory', 'createDirectory'] }); if (r.canceled || !r.filePaths[0]) return null; const c = readCfg(); c.backupDir = r.filePaths[0]; writeCfg(c); return c.backupDir; });
-ipcMain.handle('bk:pick', async () => { const r = await dialog.showOpenDialog(win, { title: 'اختر ملف نسخة احتياطية', defaultPath: bkDir(), filters: [{ name: 'Scope backup', extensions: ['json'] }], properties: ['openFile'] }); if (r.canceled || !r.filePaths[0]) return null; try { return { name: path.basename(r.filePaths[0]), json: fs.readFileSync(r.filePaths[0], 'utf8') }; } catch (e) { return null; } });
+ipcMain.handle('bk:pick', async () => { const r = await dialog.showOpenDialog(win, { title: 'اختر ملف نسخة احتياطية', defaultPath: bkDir(), filters: [{ name: 'Scope backup', extensions: ['json'] }], properties: ['openFile'] }); if (r.canceled || !r.filePaths[0]) return null; try { const x = readBackupFile(r.filePaths[0]); return x ? { name: path.basename(r.filePaths[0]), ...x } : null; } catch (e) { return null; } });
 ipcMain.handle('bk:open', () => shell.openPath(bkDir()));
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
-app.whenReady().then(() => { buildMenu(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
+app.whenReady().then(() => { loadEncPw(); buildMenu(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
