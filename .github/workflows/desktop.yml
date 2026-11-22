@@ -48,6 +48,17 @@ jobs:
           Write-Host "Installed at $exe"
           $env:APP_EXEC = $exe
           node e2e/e2e.js
+      - name: E2E on Windows 32-bit build (ia32 via WOW64)
+        if: runner.os == 'Windows'
+        working-directory: desktop
+        shell: pwsh
+        env:
+          E2E_OUT: ${{ github.workspace }}\e2e-out-ia32
+        run: |
+          $exe = (Resolve-Path 'dist\win-ia32-unpacked\Scope.exe').Path
+          Write-Host "ia32 exe: $exe"
+          $env:APP_EXEC = $exe
+          node e2e/e2e.js
       - name: Install + E2E on macOS (dmg -> /Applications)
         if: runner.os == 'macOS'
         working-directory: desktop
@@ -65,7 +76,9 @@ jobs:
         if: always()
         with:
           name: e2e-${{ matrix.os }}
-          path: e2e-out
+          path: |
+            e2e-out
+            e2e-out-ia32
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
@@ -76,6 +89,65 @@ jobs:
             desktop/dist/*.AppImage
             desktop/dist/*.deb
           if-no-files-found: error
+  cross-test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-11-arm
+            art: scope-windows-latest
+            label: Windows ARM64
+          - os: macos-15-intel
+            art: scope-macos-latest
+            label: macOS Intel x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test deps only
+        working-directory: desktop
+        run: npm install --no-audit --no-fund --ignore-scripts --no-save playwright-core
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.art }}
+          path: inst
+      - name: Windows ARM - install and E2E
+        if: runner.os == 'Windows'
+        working-directory: desktop
+        shell: pwsh
+        env:
+          E2E_OUT: ${{ github.workspace }}\e2e-out
+        run: |
+          Write-Host ("OS arch: " + $env:PROCESSOR_ARCHITECTURE)
+          $setup = Get-ChildItem ..\inst\Scope-Setup-*.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Scope\Scope.exe'
+          if (-not (Test-Path $exe)) { Write-Error "not installed"; exit 1 }
+          $env:APP_EXEC = $exe
+          node e2e/e2e.js
+      - name: macOS Intel - install and E2E
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        env:
+          E2E_OUT: ${{ github.workspace }}/e2e-out
+        run: |
+          uname -m
+          DMG=$(ls ../inst/Scope-*-Mac-universal.dmg | head -1)
+          hdiutil attach "$DMG" -nobrowse -mountpoint /Volumes/ScopeInstall
+          cp -R /Volumes/ScopeInstall/Scope.app /Applications/
+          hdiutil detach /Volumes/ScopeInstall
+          xattr -cr /Applications/Scope.app
+          APP_EXEC=/Applications/Scope.app/Contents/MacOS/Scope node e2e/e2e.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-${{ matrix.os }}
+          path: e2e-out
+          if-no-files-found: ignore
   release:
     needs: build
     runs-on: ubuntu-latest
