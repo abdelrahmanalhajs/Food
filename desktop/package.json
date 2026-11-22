@@ -40,7 +40,9 @@
         {
           "target": "nsis",
           "arch": [
-            "x64"
+            "x64",
+            "ia32",
+            "arm64"
           ]
         },
         {
@@ -57,20 +59,21 @@
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "createDesktopShortcut": true,
-      "shortcutName": "Scope"
+      "shortcutName": "Scope",
+      "artifactName": "Scope-Setup-${version}-Windows.${ext}"
     },
     "mac": {
       "target": [
         {
           "target": "dmg",
           "arch": [
-            "x64",
-            "arm64"
+            "universal"
           ]
         }
       ],
       "category": "public.app-category.business",
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "artifactName": "Scope-${version}-Mac-universal.${ext}"
     },
     "linux": {
       "target": [
@@ -81,7 +84,13 @@
       "icon": "build/icon.png",
       "maintainer": "Scope <support@scope.local>"
     },
-    "publish": null
+    "publish": null,
+    "portable": {
+      "artifactName": "Scope-Portable-${version}-Windows-x64.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Scope-${version}-Mac-universal.${ext}"
+    }
   },
   "homepage": "https://abdelrahmanalhajs.github.io/Food/app/",
   "repository": {
