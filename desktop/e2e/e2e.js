@@ -18,7 +18,10 @@ async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x
 (async () => {
   let app = await launch(), w = await open(app);
   check('1. البرنامج بيفتح والعنوان Scope', (await w.title()) === 'Scope', await w.title());
+  // لو الجهاز فيه نسخ احتياطية من تشغيل سابق، البرنامج بيعرض استرجاعها — هنا بنرفض علشان نبدأ من الصفر
+  await w.waitForSelector('#ask_no', { timeout: 4000 }).then(() => w.click('#ask_no')).catch(() => { }); await sleep(500);
   await ev(w, () => { localStorage.fp_tour = '1'; }); await w.reload(); await sleep(1200);
+  await w.waitForSelector('#ask_no', { timeout: 2500 }).then(() => w.click('#ask_no')).catch(() => { }); await sleep(500);
   check('2. أول تشغيل: شاشة إنشاء المدير إجبارية', (await ev(w, () => document.getElementById('lgn') && document.getElementById('lgn').dataset.mode)) === 'setup');
   // كلمة سر ضعيفة
   await w.fill('#lg_n', 'المدير'); await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'abc'); await w.fill('#lg_p2', 'abc'); await w.click('[data-cx=doSetup]'); await sleep(500);
@@ -109,6 +112,23 @@ async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x
   await ev(w, () => go('golive')); check('34. صفحة جاهزية التشغيل', (await w.locator('main h2').first().innerText()).includes('تشغيل'));
   await w.screenshot({ path: path.join(OUT, 'golive.png') });
   check('35. مفيش أخطاء جافاسكربت أثناء الاختبار كله', errs.length === 0, errs.slice(0, 3).join(' | '));
+  await app.close(); await sleep(1500);
+  // مجلد نسخ مخصص (فلاشة/سحابة): الاسترجاع بعد مسح البرنامج يلاقيه لوحده عن طريق المؤشر
+  const USB = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'scope-usb-')), 'Scope-Backups');
+  fs.rmSync(UD, { recursive: true, force: true }); fs.mkdirSync(UD, { recursive: true });
+  fs.writeFileSync(path.join(UD, 'config.json'), JSON.stringify({ backupDir: USB }));
+  app = await launch(); w = await open(app);
+  if (await w.locator('#ask_no').count()) await w.click('#ask_no'); await sleep(800);
+  await ev(w, () => { localStorage.fp_tour = '1'; S.settings.marker = 'CUSTOM-FOLDER'; save(); }); await sleep(6500);
+  check('36. النسخة اتكتبت في المجلد المخصص', fs.existsSync(path.join(USB, 'Scope-latest.json')), USB);
+  await app.close(); await sleep(1500);
+  fs.rmSync(UD, { recursive: true, force: true }); fs.mkdirSync(UD, { recursive: true });   // إعدادات البرنامج (وفيها مكان المجلد) اتمسحت
+  app = await launch(); w = await open(app);
+  await w.waitForSelector('#ask_ok', { timeout: 20000 }).catch(() => { });
+  const offer = await ev(w, () => (document.querySelector('#mbody h3') || {}).textContent || '');
+  check('37. الاسترجاع لقى المجلد المخصص لوحده', offer.includes(path.basename(path.dirname(USB))) || offer.includes('Scope-Backups'), offer.slice(0, 140));
+  await w.click('#ask_ok'); await sleep(3500);
+  check('38. البيانات رجعت من المجلد المخصص', await ev(w, () => S.settings.marker === 'CUSTOM-FOLDER'));
   await app.close();
   const failed = results.filter(r => !r[1]);
   console.log('\n=== ' + (results.length - failed.length) + '/' + results.length + ' passed on ' + process.platform + '/' + process.arch + ' ===');

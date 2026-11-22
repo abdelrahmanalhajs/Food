@@ -57,7 +57,24 @@ function buildMenu() {
 const cfgFile = () => path.join(app.getPath('userData'), 'config.json');
 function readCfg() { try { return JSON.parse(fs.readFileSync(cfgFile(), 'utf8')); } catch (e) { return {}; } }
 function writeCfg(c) { try { fs.writeFileSync(cfgFile(), JSON.stringify(c)); } catch (e) {} }
-const bkDir = () => { const d = readCfg().backupDir || path.join(app.getPath('documents'), 'Scope-Backups'); try { fs.mkdirSync(d, { recursive: true }); } catch (e) {} return d; };
+const defaultDir = () => path.join(app.getPath('documents'), 'Scope-Backups');
+const bkDir = () => { const d = readCfg().backupDir || defaultDir(); try { fs.mkdirSync(d, { recursive: true }); } catch (e) {} return d; };
+// مؤشرات خارج بيانات البرنامج: بتفضل موجودة حتى لو البرنامج اتمسح وانزّل تاني
+const ptrFiles = () => [path.join(defaultDir(), 'location.json'), path.join(app.getPath('home'), '.scope-location.json')];
+function writePointers(dir) { for (const f of ptrFiles()) { try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ dir, at: Date.now() })); } catch (e) {} } }
+function readPointers() { const out = []; for (const f of ptrFiles()) { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); if (o && o.dir) out.push(o.dir); } catch (e) {} } return out; }
+const safeList = (d) => { try { return fs.readdirSync(d); } catch (e) { return []; } };
+// كل الأماكن المحتملة للنسخ: الافتراضي + المؤشرات + السحابة + الفلاشات
+function candidateDirs() {
+  const c = new Set([defaultDir(), readCfg().backupDir, ...readPointers()].filter(Boolean));
+  const home = app.getPath('home'), add = (p) => c.add(p);
+  for (const n of safeList(home)) if (/^(OneDrive|Dropbox|Google ?Drive|iCloud|pCloud|MEGA|Sync)/i.test(n)) { add(path.join(home, n, 'Scope-Backups')); add(path.join(home, n, 'My Drive', 'Scope-Backups')); }
+  if (process.platform === 'win32') { for (let i = 67; i <= 90; i++) { const d = String.fromCharCode(i) + ':\\'; add(d + 'Scope-Backups'); add(d + 'My Drive\\Scope-Backups'); } }
+  if (process.platform === 'darwin') { for (const base of ['/Volumes', path.join(home, 'Library', 'CloudStorage')]) for (const n of safeList(base)) { add(path.join(base, n, 'Scope-Backups')); add(path.join(base, n, 'My Drive', 'Scope-Backups')); } add(path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs', 'Scope-Backups')); }
+  if (process.platform === 'linux') { for (const base of ['/media', '/run/media', '/mnt']) for (const u of safeList(base)) { const p = path.join(base, u); add(path.join(p, 'Scope-Backups')); for (const n of safeList(p)) add(path.join(p, n, 'Scope-Backups')); } }
+  return [...c];
+}
+function findAllBackups() { const out = []; for (const d of candidateDirs()) { for (const f of safeList(d)) { if (!/^Scope-.*\.json$/.test(f)) continue; try { const s = fs.statSync(path.join(d, f)); out.push({ dir: d, name: f, t: s.mtimeMs, mtime: fmt(s.mtimeMs) }); } catch (e) {} } } return out.sort((a, b) => b.t - a.t); }
 const stamp = (d = new Date()) => d.toISOString().slice(0, 10);
 function atomicWrite(file, data) { const tmp = file + '.tmp'; fs.writeFileSync(tmp, data); fs.renameSync(tmp, file); }
 const fmt = (t) => new Date(t).toISOString().slice(0, 16).replace('T', ' ');
@@ -97,11 +114,11 @@ ipcMain.handle('bk:save', (e, json) => {
   } catch (err) { return { ok: false, error: String(err && err.message) }; }
 });
 ipcMain.handle('bk:info', () => ({ dir: bkDir(), files: listBackups().slice(0, 8).map(({ name, mtime, size }) => ({ name, mtime, size })) }));
-ipcMain.handle('bk:latest', () => { try { const f = listBackups()[0]; if (!f) return null; const r = readBackupFile(path.join(bkDir(), f.name)); return r ? { name: f.name, mtime: f.mtime, ...r } : null; } catch (e) { return null; } });
-ipcMain.handle('bk:choose', async () => { const r = await dialog.showOpenDialog(win, { title: 'اختر مجلد النسخ الاحتياطي', properties: ['openDirectory', 'createDirectory'] }); if (r.canceled || !r.filePaths[0]) return null; const c = readCfg(); c.backupDir = r.filePaths[0]; writeCfg(c); return c.backupDir; });
+ipcMain.handle('bk:latest', () => { try { const f = findAllBackups()[0]; if (!f) return null; const r = readBackupFile(path.join(f.dir, f.name)); if (!r) return null; const c = readCfg(); if (!c.backupDir && f.dir !== defaultDir()) { c.backupDir = f.dir; writeCfg(c); } return { name: f.name, mtime: f.mtime, dir: f.dir, ...r }; } catch (e) { return null; } });
+ipcMain.handle('bk:choose', async () => { const r = await dialog.showOpenDialog(win, { title: 'اختر مجلد النسخ الاحتياطي', properties: ['openDirectory', 'createDirectory'] }); if (r.canceled || !r.filePaths[0]) return null; let d = r.filePaths[0]; if (path.basename(d) !== 'Scope-Backups') d = path.join(d, 'Scope-Backups'); try { fs.mkdirSync(d, { recursive: true }); } catch (e) { return null; } const c = readCfg(); c.backupDir = d; writeCfg(c); writePointers(d); return d; });
 ipcMain.handle('bk:pick', async () => { const r = await dialog.showOpenDialog(win, { title: 'اختر ملف نسخة احتياطية', defaultPath: bkDir(), filters: [{ name: 'Scope backup', extensions: ['json'] }], properties: ['openFile'] }); if (r.canceled || !r.filePaths[0]) return null; try { const x = readBackupFile(r.filePaths[0]); return x ? { name: path.basename(r.filePaths[0]), ...x } : null; } catch (e) { return null; } });
 ipcMain.handle('bk:open', () => shell.openPath(bkDir()));
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
-app.whenReady().then(() => { loadEncPw(); buildMenu(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
+app.whenReady().then(() => { loadEncPw(); try { const c = readCfg(); if (c.backupDir) writePointers(c.backupDir); } catch (e) {} buildMenu(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
