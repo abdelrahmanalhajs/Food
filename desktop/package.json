@@ -15,11 +15,13 @@
     "dist": "npm run prepare-app && electron-builder",
     "dist:win": "npm run prepare-app && electron-builder --win",
     "dist:mac": "npm run prepare-app && electron-builder --mac",
-    "dist:linux": "npm run prepare-app && electron-builder --linux"
+    "dist:linux": "npm run prepare-app && electron-builder --linux",
+    "test:e2e": "node e2e/e2e.js"
   },
   "devDependencies": {
     "electron": "^33.4.11",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "playwright-core": "^1.49.0"
   },
   "build": {
     "appId": "com.scope.restaurant",

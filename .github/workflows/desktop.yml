@@ -12,6 +12,7 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +26,47 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run dist -- --publish never
+      - name: E2E on Linux (packaged app, xvfb)
+        if: runner.os == 'Linux'
+        working-directory: desktop
+        env:
+          APP_EXEC: ${{ github.workspace }}/desktop/dist/linux-unpacked/scope-desktop
+          E2E_OUT: ${{ github.workspace }}/e2e-out
+        run: xvfb-run -a node e2e/e2e.js
+      - name: Install + E2E on Windows (silent installer, then installed app)
+        if: runner.os == 'Windows'
+        working-directory: desktop
+        shell: pwsh
+        env:
+          E2E_OUT: ${{ github.workspace }}\e2e-out
+        run: |
+          $setup = Get-ChildItem dist\Scope-Setup-*.exe | Select-Object -First 1
+          Write-Host "Installing $($setup.Name) silently"
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Scope\Scope.exe'
+          if (-not (Test-Path $exe)) { Write-Error "Installed exe not found at $exe"; exit 1 }
+          Write-Host "Installed at $exe"
+          $env:APP_EXEC = $exe
+          node e2e/e2e.js
+      - name: Install + E2E on macOS (dmg -> /Applications)
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        env:
+          E2E_OUT: ${{ github.workspace }}/e2e-out
+        run: |
+          DMG=$(ls dist/Scope-*-Mac-universal.dmg | head -1)
+          hdiutil attach "$DMG" -nobrowse -mountpoint /Volumes/ScopeInstall
+          cp -R /Volumes/ScopeInstall/Scope.app /Applications/
+          hdiutil detach /Volumes/ScopeInstall
+          xattr -cr /Applications/Scope.app
+          lipo -archs /Applications/Scope.app/Contents/MacOS/Scope || true
+          APP_EXEC=/Applications/Scope.app/Contents/MacOS/Scope node e2e/e2e.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-${{ matrix.os }}
+          path: e2e-out
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: scope-${{ matrix.os }}

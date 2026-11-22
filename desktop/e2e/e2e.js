@@ -1,0 +1,117 @@
+// اختبار شامل للبرنامج المثبّت (Electron) — بيشتغل على Windows وMac وLinux.
+// الاستخدام: APP_EXEC=<مسار البرنامج> node e2e/e2e.js
+let pw; try { pw = require('playwright-core'); } catch (e) { pw = require('playwright'); }
+const { _electron } = pw;
+const fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
+const EXEC = process.env.APP_EXEC;
+if (!EXEC) { console.error('APP_EXEC is required'); process.exit(2); }
+const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), 'scope-e2e'); fs.mkdirSync(OUT, { recursive: true });
+const UD = fs.mkdtempSync(path.join(os.tmpdir(), 'scope-ud-'));
+const results = []; const errs = [];
+const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra !== undefined ? '  -> ' + extra : '')); };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const launch = () => _electron.launch({ executablePath: EXEC, args: ['--no-sandbox', '--user-data-dir=' + UD], timeout: 60000 });
+async function open(app) { const w = await app.firstWindow(); w.on('pageerror', e => errs.push(e.message)); await w.waitForLoadState('domcontentloaded'); await sleep(1500); return w; }
+const ev = (w, f, a) => w.evaluate(f, a);
+async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x => can(x[0])).map(x => x[0])); let bad = 0, empty = 0; for (const t of tabs) { try { await ev(w, t => go(t), t); await sleep(60); if (!(await w.locator('main').innerText()).trim()) empty++; } catch (e) { bad++; console.log('  throw on', t, String(e.message).split('\n')[0]); } } check(label + ': كل الصفحات تفتح (' + tabs.length + ')', bad === 0 && empty === 0, 'throws=' + bad + ' empty=' + empty); }
+
+(async () => {
+  let app = await launch(), w = await open(app);
+  check('1. البرنامج بيفتح والعنوان Scope', (await w.title()) === 'Scope', await w.title());
+  await ev(w, () => { localStorage.fp_tour = '1'; }); await w.reload(); await sleep(1200);
+  check('2. أول تشغيل: شاشة إنشاء المدير إجبارية', (await ev(w, () => document.getElementById('lgn') && document.getElementById('lgn').dataset.mode)) === 'setup');
+  // كلمة سر ضعيفة
+  await w.fill('#lg_n', 'المدير'); await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'abc'); await w.fill('#lg_p2', 'abc'); await w.click('[data-cx=doSetup]'); await sleep(500);
+  check('3. كلمة سر ضعيفة مرفوضة', (await w.locator('#lgn .al').count()) > 0 && (await ev(w, () => !authOn())));
+  await w.fill('#lg_p', 'Boss#2026'); await w.fill('#lg_p2', 'Boss#2026'); await w.click('[data-cx=doSetup]'); await w.waitForSelector('#lgn div[style*=monospace]', { timeout: 20000 });
+  const rec = await w.locator('#lgn div[style*=monospace]').innerText();
+  check('4. كود الطوارئ ظهر', /^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(rec.trim()), rec);
+  await w.click('[data-cx=codeDone]'); await sleep(600);
+  check('5. كلمة السر مش متخزنة صريحة', await ev(w, () => !JSON.stringify(localStorage).includes('Boss#2026') && S.auth.users[0].hash.length > 20));
+  await allPages(w, '6. عربي');
+  await ev(w, () => { S.settings.lang = 'en'; save(); }); await w.reload(); await sleep(1500);
+  if (await w.locator('#lgn').count()) { await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'Boss#2026'); await w.click('[data-cx=doLogin]'); await sleep(1500); }
+  await allPages(w, '7. إنجليزي');
+  await ev(w, () => { S.settings.lang = 'ar'; save(); }); await w.reload(); await sleep(1500);
+  // مصروف + فرع + شكوى + صفحة مخصصة + مستخدم
+  await ev(w, () => go('exp')); await w.fill('#ea', '777'); await w.click('[data-act=addExp]'); await sleep(300);
+  check('8. إضافة مصروف', await ev(w, () => S.exp.some(e => e.amount === 777)));
+  await ev(w, () => go('brs')); await w.fill('#cxnb', 'فرع الإسكندرية'); await w.click('[data-cx=newbr]'); await sleep(400);
+  check('9. إضافة فرع + دور كاشير تلقائي', await ev(w, () => S.branches.some(b => b.name === 'فرع الإسكندرية') && Object.values(CFG().roles).some(r => /الإسكندرية/.test(r.n) && r.br)));
+  await ev(w, () => { const id = S.branches[S.branches.length - 1].id; BRS.sel = id; render(); }); await w.click('[data-cx=brgo][data-t=stock]'); await sleep(300);
+  check('10. أزرار مميزات الفرع بتفلتر الصفحة', await ev(w, () => tab === 'stock' && S.settings.br === S.branches[S.branches.length - 1].id));
+  await ev(w, () => { S.settings.br = 'all'; save(); });
+  await ev(w, () => go('cmp')); await w.fill('#cm_n', 'اختبار'); await w.click('[data-cx=addcmp]'); await sleep(300);
+  check('11. تسجيل شكوى', await ev(w, () => (S.complaints || []).length === 1));
+  await ev(w, () => go('pages')); await w.click('[data-cx=tpl][data-t=debts]'); await w.click('[data-cx=donepage]'); await sleep(300);
+  check('12. صفحة مخصصة من قالب', await ev(w, () => CFG().pages.length === 1));
+  await w.click('[data-cx=pgt][data-t=users]').catch(async () => { await ev(w, () => go('pages')); await w.click('[data-cx=pgt][data-t=users]'); });
+  await w.fill('#nu_n', 'سارة'); await w.fill('#nu_u', 'sara'); await w.fill('#nu_p', 'Sara#123'); await w.selectOption('#nu_r', 'cash'); await w.click('[data-cx=addUser]'); await sleep(900);
+  check('13. إضافة مستخدم كاشير', await ev(w, () => AU().users.some(u => u.u === 'sara' && u.role === 'cash')));
+  await w.fill('#nu_n', 'تكرار'); await w.fill('#nu_u', 'SARA'); await w.fill('#nu_p', 'Other#123'); await w.click('[data-cx=addUser]'); await sleep(400);
+  check('14. اسم مستخدم مكرر مرفوض', await ev(w, () => AU().users.filter(u => u.u === 'sara').length === 1));
+  // تسجيل خروج ودخول
+  await w.click('#nav [data-cx=logout]'); await w.waitForSelector('#lgn');
+  for (let i = 0; i < 5; i++) { await w.fill('#lg_u', 'sara'); await w.fill('#lg_p', 'bad' + i); await w.click('[data-cx=doLogin]'); await sleep(700); }
+  check('15. قفل بعد 5 محاولات غلط', /استنى/.test(await w.locator('#lgn .al').innerText()));
+  await ev(w, () => localStorage.removeItem('scope_fail')); await w.reload(); await sleep(1500);
+  await w.fill('#lg_u', 'sara'); await w.fill('#lg_p', 'Sara#123'); await w.click('[data-cx=doLogin]'); await sleep(1500);
+  const cashTabs = await ev(w, () => TABS.filter(x => can(x[0])).map(x => x[0]));
+  check('16. الكاشير يشوف صفحات محدودة بس', cashTabs.includes('pos') && !cashTabs.includes('dash') && !cashTabs.includes('pages'), cashTabs.join(','));
+  await ev(w, () => go('pages')); check('17. الكاشير ما يدخلش الإدارة', (await ev(w, () => tab)) !== 'pages');
+  check('18. قايمة تغيير الدور مخفية', (await w.locator('#roleSel').count()) === 0);
+  await w.click('#nav [data-cx=logout]'); await w.waitForSelector('#lgn'); await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'Boss#2026'); await w.click('[data-cx=doLogin]'); await sleep(1500);
+  check('19. دخول المدير', (await ev(w, () => role())) === 'owner');
+  // نسخ احتياطي + تشفير
+  await ev(w, () => { S.settings.marker = 'E2E-MARK'; save(); }); await sleep(6500);
+  const bdir = await ev(w, () => scopeDesktop.info().then(i => i.dir));
+  const files = fs.readdirSync(bdir).filter(f => f.endsWith('.json'));
+  check('20. نسخ احتياطي تلقائي اتكتب', files.includes('Scope-latest.json') && files.some(f => /^Scope-\d{4}-\d{2}-\d{2}\.json$/.test(f)), bdir);
+  await ev(w, () => go('set')); await sleep(800);
+  await w.fill('#enc_p', 'Backup#Pass9'); await w.fill('#enc_p2', 'Backup#Pass9'); await w.click('[data-cx=encOn]'); await sleep(3500);
+  const env = fs.readFileSync(path.join(bdir, 'Scope-latest.json'), 'utf8'); let o = {}; try { o = JSON.parse(env); } catch (e) { }
+  check('21. النسخة بقت مشفّرة ومفيهاش بيانات مقروءة', o.scope === 1 && o.enc === 'AES-256-GCM' && !env.includes('E2E-MARK') && !env.includes('boss'));
+  check('22. كل النسخ القديمة اتشفرت', fs.readdirSync(bdir).filter(f => f.endsWith('.json')).every(f => { try { return JSON.parse(fs.readFileSync(path.join(bdir, f), 'utf8')).scope === 1; } catch (e) { return false; } }));
+  check('23. مكتبة Excel المدمجة شغالة بدون إنترنت', (await ev(w, () => ensureXLSX().then(() => typeof XLSX, e => 'ERR'))) === 'object');
+  await w.screenshot({ path: path.join(OUT, 'settings.png') });
+  await ev(w, () => scopeDesktop.saveBackup(JSON.stringify(S)));
+  await app.close(); await sleep(1500);
+  // استمرار البيانات بعد إعادة التشغيل
+  app = await launch(); w = await open(app);
+  check('24. بعد إعادة التشغيل: مطلوب تسجيل دخول', (await ev(w, () => document.getElementById('lgn') && document.getElementById('lgn').dataset.mode)) === 'login');
+  await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'Boss#2026'); await w.click('[data-cx=doLogin]'); await sleep(1500);
+  check('25. البيانات فضلت محفوظة', await ev(w, () => S.settings.marker === 'E2E-MARK' && S.branches.length === 4 && S.exp.some(e => e.amount === 777)));
+  // قفل النسخة الواحدة
+  const second = cp.spawnSync(EXEC, ['--no-sandbox', '--user-data-dir=' + UD], { timeout: 25000 });
+  await sleep(1500); check('26. نسخة ثانية ما بتفتحش نافذة تانية', app.windows().length === 1, 'windows=' + app.windows().length);
+  await app.close(); await sleep(1500);
+  // كارثة: مسح بيانات البرنامج + استرجاع
+  fs.rmSync(UD, { recursive: true, force: true }); fs.mkdirSync(UD, { recursive: true });
+  app = await launch(); w = await open(app);
+  await w.waitForSelector('#ask_ok', { timeout: 20000 }).catch(() => { });
+  check('27. بعد المسح: عرض استرجاع نسخة', /نسخة احتياطية/.test(await ev(w, () => (document.querySelector('#mbody h3') || {}).textContent || '')));
+  await w.click('#ask_ok'); await w.waitForSelector('#ask_i'); await w.fill('#ask_i', 'wrong-pass'); await w.click('#ask_ok'); await sleep(900);
+  check('28. كلمة سر غلط ← بيسأل تاني', (await w.locator('#ask_i').count()) === 1);
+  await w.fill('#ask_i', 'Backup#Pass9'); await w.click('#ask_ok'); await sleep(3000);
+  await ev(w, () => { localStorage.fp_tour = '1'; }).catch(() => { });
+  await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'Boss#2026'); await w.click('[data-cx=doLogin]'); await sleep(1500);
+  check('29. الاسترجاع رجّع كل شيء', await ev(w, () => S.settings.marker === 'E2E-MARK' && S.branches.length === 4 && CFG().pages.length === 1 && AU().users.length === 2 && (S.complaints || []).length === 1));
+  // بدء من الصفر
+  await ev(w, () => go('imp')); await w.click('[data-cx=wipeAll]'); await w.fill('#ask_i', 'مطعم حقيقي'); await w.click('#ask_ok'); await w.waitForSelector('#ask_i'); await w.fill('#ask_i', 'مسح'); await w.click('#ask_ok'); await sleep(1000);
+  check('30. مسح كل شيء والبدء من الصفر', await ev(w, () => S.ing.length === 0 && S.rec.length === 0 && S.sales.length === 0 && S.branches.length === 1 && S.branches[0].name === 'مطعم حقيقي' && AU().users.length === 2));
+  await allPages(w, '31. صفحات النظام الفاضي');
+  await ev(w, () => go('stock')); await w.fill('#ni_n', 'دجاج'); await w.fill('#ni_c', '0.18'); await w.click('[data-act=addIng]'); await w.fill('#ni_n', 'أرز'); await w.fill('#ni_c', '0.03'); await w.click('[data-act=addIng]');
+  await ev(w, () => go('rec')); await w.fill('#nr_n', 'فراخ بالأرز'); await w.click('[data-act=addRec]'); await sleep(300);
+  await ev(w, () => { const r = S.rec[0]; r.items = [{ ing: S.ing[0].id, qty: 150 }, { ing: S.ing[1].id, qty: 100 }]; r.prices = { dine: 90, direct: 90, app: 110 }; S.cash = { cash: 5000, bank: 0 }; save(); render(); });
+  await ev(w, () => { S.sales.push({ id: 's1', date: today(), ch: Object.keys(S.channels)[0], items: [{ rid: S.rec[0].id, qty: 3, price: 90 }], disc: 0, orders: 3, br: S.branches[0].id, by: 'owner' }); save(); });
+  check('32. دورة كاملة من الصفر: خامة ← وصفة ← بيع ← أرباح', await ev(w, () => { const R = agg(); return Math.round(R.rev) === 270 && R.cogs > 0; }));
+  await allPages(w, '33. كل الصفحات بعد إدخال بيانات حقيقية');
+  await ev(w, () => go('golive')); check('34. صفحة جاهزية التشغيل', (await w.locator('main h2').first().innerText()).includes('تشغيل'));
+  await w.screenshot({ path: path.join(OUT, 'golive.png') });
+  check('35. مفيش أخطاء جافاسكربت أثناء الاختبار كله', errs.length === 0, errs.slice(0, 3).join(' | '));
+  await app.close();
+  const failed = results.filter(r => !r[1]);
+  console.log('\n=== ' + (results.length - failed.length) + '/' + results.length + ' passed on ' + process.platform + '/' + process.arch + ' ===');
+  fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ platform: process.platform, arch: process.arch, results, errs }, null, 1));
+  process.exit(failed.length ? 1 : 0);
+})().catch(e => { console.error('E2E CRASH', e); process.exit(1); });
