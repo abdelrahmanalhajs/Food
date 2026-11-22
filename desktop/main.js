@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 app.setName('Scope');
-if (!app.requestSingleInstanceLock()) { app.quit(); }
+if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 let win;
 const stateFile = () => path.join(app.getPath('userData'), 'window-state.json');
@@ -13,6 +13,7 @@ function saveState() { try { if (!win || win.isDestroyed()) return; const b = wi
 
 function createWindow() {
   const st = loadState();
+  try { const { screen } = require('electron'); const d = screen.getAllDisplays().some(d => st.x >= d.bounds.x && st.x < d.bounds.x + d.bounds.width - 50 && st.y >= d.bounds.y && st.y < d.bounds.y + d.bounds.height - 50); if (!d) { delete st.x; delete st.y; } } catch (e) { delete st.x; delete st.y; }
   win = new BrowserWindow({
     width: st.width || 1366, height: st.height || 860, x: st.x, y: st.y, minWidth: 380, minHeight: 600,
     title: 'Scope', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#f6f7f4', autoHideMenuBar: true,
