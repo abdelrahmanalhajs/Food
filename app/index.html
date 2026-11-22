@@ -466,9 +466,9 @@ function health(){const R=agg(),B=beInfo(R),F=msForecast(R),parts=[];
  return {score:Math.round(parts.reduce((a,p)=>a+p.s,0)/parts.length),parts}}
 
 // ---------- ui ----------
-const NAV=[['🏠','الرئيسية',[['dash','📊 لوحة المالك الكاملة'],['home','🏠 الرئيسية'],['plan','🚀 اعمل إيه النهاردة'],['mp','💰 خطة الربح']]],['🛒','المبيعات',[['pos','🛒 تسجيل بيع'],['cmp','📣 شكاوى العملاء'],['imp','📥 استيراد وتصدير']]],['📦','المشتريات والمخزون',[['inv','🧾 الفواتير'],['stock','📦 المخزون'],['sup','🤝 الموردين وأسعارهم']]],['💵','الفلوس',[['exp','💸 المصروفات'],['cash','💵 الفلوس والسيولة'],['pay','👥 الموظفين والرواتب']]],['📊','التحليل',[['pl','📈 الأرباح والخسائر'],['me','⭐ أي أصنافي بتكسب؟'],['rec','🍝 الوصفات وتكلفة الطبق'],['price','🏷 أسعار البيع'],['brs','🏢 كل الفروع (شاشة مجمعة)'],['br','🏢 مقارنة الفروع']]],['🧰','أدوات',[['close','🗓 تقرير الشهر والميزانية'],['ai','🤖 اسأل المساعد'],['sim','🎛 جرّب قرار (لو عملت كذا؟)'],['pages','🧩 تخصيص النظام'],['set','⚙ الإعدادات']]]];
+const NAV=[['🏠','الرئيسية',[['dash','📊 لوحة المالك الكاملة'],['home','🏠 الرئيسية'],['plan','🚀 اعمل إيه النهاردة'],['mp','💰 خطة الربح']]],['🛒','المبيعات',[['pos','🛒 تسجيل بيع'],['cmp','📣 شكاوى العملاء'],['imp','📥 استيراد وتصدير']]],['📦','المشتريات والمخزون',[['inv','🧾 الفواتير'],['stock','📦 المخزون'],['sup','🤝 الموردين وأسعارهم']]],['💵','الفلوس',[['exp','💸 المصروفات'],['cash','💵 الفلوس والسيولة'],['pay','👥 الموظفين والرواتب']]],['📊','التحليل',[['pl','📈 الأرباح والخسائر'],['me','⭐ أي أصنافي بتكسب؟'],['rec','🍝 الوصفات وتكلفة الطبق'],['price','🏷 أسعار البيع'],['brs','🏢 كل الفروع (شاشة مجمعة)'],['br','🏢 مقارنة الفروع']]],['🧰','أدوات',[['close','🗓 تقرير الشهر والميزانية'],['ai','🤖 اسأل المساعد'],['sim','🎛 جرّب قرار (لو عملت كذا؟)'],['golive','🚀 جهّز للتشغيل الفعلي'],['pages','🧩 تخصيص النظام'],['set','⚙ الإعدادات']]]];
 const TABS=NAV.flatMap(g=>g[2]);
-const SIMPLE=['home','dash','plan','pos','exp','inv','stock','cash','close','ai','imp','pages','set'];
+const SIMPLE=['home','dash','plan','pos','exp','inv','stock','cash','close','ai','imp','golive','pages','set'];
 const ROLES={owner:{n:'المالك',tabs:'*'},acct:{n:'المحاسب',tabs:['home','plan','cmp','exp','inv','cash','pay','pl','imp','close','dash','sup']},store:{n:'أمين المخزن',tabs:['home','inv','stock','sup','rec']},cash:{n:'الكاشير',tabs:['home','pos','cmp']}};
 const role=()=>S.settings.role||'owner';
 const can=t=>{const c=CFG(),n=c.nav,cp=c.pages.find(p=>p.id===t),roleOk=ROLES[role()].tabs==='*'||ROLES[role()].tabs.includes(t)||(!!cp&&(cp.roles||[]).includes(role()));if(!roleOk)return false;if(t==='set'||t==='pages')return true;return !n.hidden.includes(t)&&!((IND_SP().hide||[]).includes(t)&&!n.show.includes(t))};
@@ -745,6 +745,7 @@ async function ocrReal(){if(!draft||!draft.img)return toast('ارفع صورة �
 V.imp=()=>{const s=imp.sales,m=imp.stmt;const tpl=(n,rows)=>`<button class="b g sm" data-act="tpl" data-n="${n}">⬇ نزّل النموذج</button>`;
  return `<h2>📥 استيراد وتصدير</h2><p class="sub">أدخل بياناتك الحقيقية بدل التجريبية، وصدّر تقاريرك واحتفظ بنسخة احتياطية.</p>
  <div class="card" style="border-top:4px solid var(--brand)"><h3 style="margin-top:0">① ابدأ ببيانات مطعمك</h3><div class="note">يمسح المبيعات والمصروفات والفواتير والكاش التجريبية، ويُبقي الخامات والوصفات والفروع والموردين لتعدّلها (والمخزون يصبح صفرًا).</div><button class="b r" data-act="clearDemo">امسح بيانات التجربة</button></div>
+ <div class="card" style="border-top:4px solid var(--bad,#c92a2a)"><h3 style="margin-top:0">①-ب ابدأ من الصفر تمامًا</h3><div class="note">يمسح <b>كل</b> البيانات التجريبية بما فيها الخامات والوصفات والموردين والموظفين، ويسيب فرع واحد باسمك. تضيف بعدها خاماتك وأصنافك. (حسابات المستخدمين والتخصيصات والإعدادات بتفضل.)</div><button class="b r" data-cx="wipeAll">🗑 امسح كل شيء وابدأ من الصفر</button></div>
  <div class="card"><h3 style="margin-top:0">② استيراد مبيعات من الكاشير (Excel / CSV)</h3><div class="note">الأعمدة: التاريخ، الصنف، الكمية (مطلوبة) — والفرع، القناة، السعر، الخصم (مبلغ بالجنيه)، رقم الطلب (اختيارية). الصنف يُطابَق باسم وصفة موجودة. التاريخ بصيغة يوم/شهر/سنة.</div>
  <div class="row">${tpl('sales')}<input type="file" id="f_sales" accept=".csv,.xlsx,.xls,.txt"></div>
  ${s?(s.err?`<div class="al c">${esc(s.err)}</div>`:`<div class="al i"><b>جاهز للاستيراد:</b> ${N(s.used)} صف من ${N(s.total)} ← ${N(s.list.length)} سجل مبيعات، مبيعات ${M(s.gross)}، ${N(s.ords)} طلب${s.hasOrder?'':' (تقديري لأن الملف بلا رقم طلب)'}، من ${s.dates[0]} إلى ${s.dates[s.dates.length-1]}</div>${Object.keys(s.unk).length?`<div class="al w">أصناف لم تُطابق أي وصفة وتم تجاهلها: ${Object.entries(s.unk).map(([k,v])=>esc(k)+' ('+v+')').join('، ')} — أضف وصفة بنفس الاسم ثم أعد الاستيراد.</div>`:''}${!s.hasCh?'<div class="note">لا يوجد عمود قناة: اعتُبرت كل المبيعات داخل المطعم.</div>':''}${!s.hasBr?'<div class="note">لا يوجد عمود فرع: ستُسجل على الفرع المختار أو الأول.</div>':''}<div class="row"><label style="flex-direction:row;gap:6px;align-items:center"><input type="checkbox" id="imp_clr" ${S.sales.some(x=>x.seeded)?'checked':''}> احذف مبيعات التجربة أولًا</label><button class="b" data-act="applySales">استيراد الآن</button></div><div class="note">لا يُغيّر رصيد الكاش (حدّثه من «الفلوس والسيولة») ولا يخصم المخزون (استخدم الجرد).</div>`):''}</div>
@@ -798,7 +799,7 @@ V.sup=()=>{const I=supInfo();const best=Object.entries(I.sc).sort((a,b)=>b[1].va
  <div class="note">تعديل السعر هنا يسجّل السعر السابق ويحسب نسبة التغير. «حوّل للأرخص» يغيّر المورد المعتمد للخامة؛ تتحدث التكلفة فعليًا عند اعتماد أول فاتورة منه.</div></div>`};
 
 // ---- invoices
-V.inv=()=>{if(!draft)draft={supplier:'مورد A',br:S.branches[0].id,date:today(),lines:[{ing:S.ing[0].id,qty:1,unit:1000,total:0}],img:null};
+V.inv=()=>{if(!S.ing.length)return '<h2>🧾 الفواتير</h2><div class="card"><div class="note">لازم تضيف الخامات الأول (من صفحة «المخزون ← إضافة خامة») قبل تسجيل فواتير المشتريات.</div><a class="b" href="#" data-tab="stock">اذهب للمخزون</a></div>';if(!draft)draft={supplier:'مورد A',br:S.branches[0].id,date:today(),lines:[{ing:S.ing[0].id,qty:1,unit:1000,total:0}],img:null};
  const sup=[...new Set(S.ing.map(i=>i.supplier))];
  const lines=draft.lines.map((l,i)=>{const g=ING(l.ing);const cf=l.conf?`<span class="tag ${l.conf<.85?'neg':'pos'}">ثقة ${Math.round(l.conf*100)}%</span>`:'';
   return `<tr><td><select data-d="ing" data-i="${i}">${S.ing.map(x=>`<option value="${x.id}"${x.id===l.ing?' selected':''}>${esc(x.name)}</option>`).join('')}</select></td>
@@ -1432,6 +1433,27 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-cx]'
  if(a==='dkRestore')return window.scopeRestore();
  if(a==='dkNow'){const r=await dkRun();toast(r?'تم حفظ نسخة احتياطية':'تعذر حفظ النسخة');keep=true;render()}
 });
+
+/* ===== البدء ببيانات حقيقية + قايمة جاهزية التشغيل ===== */
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-cx]');if(!b||b.dataset.cx!=='wipeAll')return;
+ const bn=await askText('اسم فرعك الأول (هيحل محل الفروع التجريبية)','الفرع الرئيسي');if(bn===null||!bn.trim())return;
+ const c=await askText('تأكيد المسح: اكتب كلمة  مسح  للمتابعة','');if(c===null||c.trim()!=='مسح')return toast('اتلغى — ما اتمسحش حاجة');
+ try{if(window.scopeDesktop)await dkRun()}catch(er){}
+ const id='b'+uid();S.branches=[{id,name:bn.trim()}];S.sales=[];S.exp=[];S.waste=[];S.inv=[];S.draw=[];S.counts=[];S.plog=[];S.outside=[];S.transfers=[];S.closes=[];S.emp=[];S.pays=[];S.complaints=[];S.cash={cash:0,bank:0};S.ing=[];S.rec=[];S.sup=[];S.quotes=[];S.settings.br='all';S.settings.demoCleared=true;delete S.draft;draft=null;cart=[];
+ log('مسح كل البيانات التجريبية والبدء من الصفر');save();toast('تم — ابدأ بإضافة خاماتك وأصنافك');go('golive')});
+const GL=()=>{const R=[];const dem=S.sales.some(s=>s.seeded);
+ R.push([!dem,'مسح بيانات التجربة','المبيعات والمصروفات التجريبية لازم تتمسح قبل البدء','imp','افتح استيراد وتصدير']);
+ R.push([S.branches.length>0&&!/المعادي|نصر|التجمع/.test(S.branches.map(b=>b.name).join(' ')),'أسماء الفروع الحقيقية','غيّر أسماء الفروع التجريبية (من «كل الفروع»)','brs','افتح الفروع']);
+ R.push([S.ing.length>0,'الخامات ('+S.ing.length+')','أضف خاماتك بتكلفتها ووحداتها والحد الأدنى','stock','افتح المخزون']);
+ R.push([S.rec.filter(r=>!r.sub).length>0,'الأصناف والوصفات ('+S.rec.filter(r=>!r.sub).length+')','أضف أصنافك بأسعارها ومكوناتها لحساب التكلفة','rec','افتح الوصفات']);
+ R.push([S.emp.length>0,'الموظفين والمرتبات ('+S.emp.length+')','سجّل الموظفين ومرتباتهم','pay','افتح الموظفين']);
+ R.push([(S.cash.cash+S.cash.bank)>0,'الرصيد الافتتاحي (كاش وبنك)','ادخل رصيد الكاش والبنك النهاردة','cash','افتح الفلوس']);
+ R.push([typeof authOn==='function'&&authOn(),'حساب المدير وكلمة السر','أنشئ حساب المدير وحسابات الكاشير','pages','افتح تخصيص النظام']);
+ const bk=window.scopeDesktop?!!S.settings.lastBackup:!!S.settings.lastBackup;R.push([bk,'النسخ الاحتياطي','فعّل النسخ التلقائي واختار مجلد سحابي/فلاشة، ويفضّل التشفير','set','افتح الإعدادات']);
+ R.push([S.sales.some(s=>!s.seeded),'أول عملية بيع حقيقية','سجّل أول بيع وتأكد إن الأرقام منطقية','pos','افتح المبيعات']);return R};
+V.golive=()=>{const R=GL(),done=R.filter(r=>r[0]).length;return `<h2>🚀 جهّز للتشغيل الفعلي</h2><p class="sub">خطوات سريعة قبل ما تبدأ تستخدم Scope ببيانات مطعمك الحقيقية. الخطوات الخضرا اتعملت.</p><div class="grid">${kpi('اتعمل',done+' / '+R.length,done===R.length?'pos':'wr')}</div>
+ <div class="card">${R.map(r=>`<div class="row" style="align-items:center;border-bottom:1px solid var(--line);padding:8px 0"><span style="font-size:22px">${r[0]?'✅':'⬜'}</span><div style="flex:1"><b>${esc(r[1])}</b><div class="note">${esc(r[2])}</div></div><button class="b ${r[0]?'g':''} sm" data-tab="${r[3]}">${esc(r[4])}</button></div>`).join('')}</div>
+ <div class="card"><h3 style="margin-top:0">نصايح للأسبوع الأول</h3><ul style="line-height:2"><li>شغّل Scope <b>جنب</b> دفترك أو برنامجك الحالي أسبوع قبل ما تعتمد عليه لوحده.</li><li>خد نسخة احتياطية آخر كل يوم على فلاشة أو مجلد سحابي — والنسخ التلقائي بيعمل ده لو فعّلته.</li><li>سجّل المبيعات في نفس اليوم، والمصروفات والفواتير أول بأول علشان الأرقام تبقى صح.</li><li>راجع «اعمل إيه النهاردة» كل صبح.</li></ul></div>`};
 
 const ACTL={addDaily:()=>`إضافة مبيعات يومية (${$('#dl_d').value})`,delSale:'حذف سجل مبيعات',addExp:()=>{const v=$('#ec').value;return v==='__sal'?`صرف راتب بمبلغ ${$('#ea').value}`:v==='__adv'?`سلفة موظف بمبلغ ${$('#ea').value}`:`إضافة مصروف ${v} بمبلغ ${$('#ea').value}`},delPay:'حذف صرف مرتب/سلفة',delExp:'حذف مصروف',addDraw:()=>`تسجيل مسحوبات ${$('#da').value}`,delDraw:'حذف مسحوبات',saveCash:()=>`تعديل أرصدة الكاش/البنك إلى ${$('#cc').value} / ${$('#cb').value}`,payInv:'تسديد فاتورة مورد',appr:'اعتماد فاتورة مشتريات',rej:'رفض فاتورة',sell:()=>`تسجيل بيع (${cart.reduce((a,c)=>a+c.qty,0)} وحدة)`,cancelOrder:'تسجيل طلب ملغى',count:'اعتماد جرد',addWaste:()=>`تسجيل هالك ${$('#wq').value}`,delWaste:'حذف هالك',transfer:'تحويل مخزون بين الفروع',saveSet:'تعديل الإعدادات',reset:'إعادة بيانات التجربة',addEmp:'إضافة موظف',delEmp:'حذف موظف',addBranch:'إضافة فرع',setSup:'تغيير مورد خامة',addOut:'إضافة مبلغ بره',delOut:'حذف مبلغ بره',addIng:'إضافة خامة',addRec:'إضافة وصفة',addSubRec:'إضافة وصفة فرعية',delRec:'حذف وصفة',saveInv:'حفظ فاتورة للمراجعة'};
 document.addEventListener('click',e=>{
