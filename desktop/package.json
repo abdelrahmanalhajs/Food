@@ -1,0 +1,91 @@
+{
+  "name": "scope-desktop",
+  "productName": "Scope",
+  "version": "1.0.0",
+  "description": "Scope — نظام لحساب الربح الحقيقي وإدارة المبيعات والمخزون لأي نشاط (برنامج سطح المكتب)",
+  "author": {
+    "name": "Scope",
+    "email": "support@scope.local"
+  },
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "scripts": {
+    "prepare-app": "node scripts/copy-app.js",
+    "start": "npm run prepare-app && electron .",
+    "dist": "npm run prepare-app && electron-builder",
+    "dist:win": "npm run prepare-app && electron-builder --win",
+    "dist:mac": "npm run prepare-app && electron-builder --mac",
+    "dist:linux": "npm run prepare-app && electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.scope.restaurant",
+    "productName": "Scope",
+    "copyright": "Scope",
+    "files": [
+      "main.js",
+      "app/**/*",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "artifactName": "Scope-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "Scope"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.business",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "icon": "build/icon.png",
+      "maintainer": "Scope <support@scope.local>"
+    },
+    "publish": null
+  },
+  "homepage": "https://abdelrahmanalhajs.github.io/Food/app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abdelrahmanalhajs/Food.git"
+  }
+}
