@@ -132,6 +132,8 @@ async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x
   await allPages(w, '33. كل الصفحات بعد إدخال بيانات حقيقية');
   await ev(w, () => go('golive')); check('34. صفحة جاهزية التشغيل', (await w.locator('main h2').first().innerText()).includes('تشغيل'));
   await w.screenshot({ path: path.join(OUT, 'golive.png') });
+  // ===== سيناريو مطعم حقيقي: الأرقام المتوقعة محسوبة بشكل مستقل =====
+  await require('./scenario')(w, check, ev, sleep);
   check('35. مفيش أخطاء جافاسكربت أثناء الاختبار كله', errs.length === 0, errs.slice(0, 3).join(' | '));
   await app.close(); await sleep(1500);
   // مجلد نسخ مخصص (فلاشة/سحابة): الاسترجاع بعد مسح البرنامج يلاقيه لوحده عن طريق المؤشر
