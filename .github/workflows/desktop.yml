@@ -124,9 +124,20 @@ jobs:
         run: |
           Write-Host ("OS arch: " + $env:PROCESSOR_ARCHITECTURE)
           $setup = Get-ChildItem ..\inst\Scope-Setup-*.exe | Select-Object -First 1
-          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          Write-Host ("Installer: " + $setup.FullName + " size " + $setup.Length)
+          $p = Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait -PassThru
+          Write-Host ("Installer exit code: " + $p.ExitCode)
+          Start-Sleep -Seconds 10
           $exe = Join-Path $env:LOCALAPPDATA 'Programs\Scope\Scope.exe'
+          if (-not (Test-Path $exe)) {
+            Write-Host "Not at default path; searching..."
+            $found = @()
+            foreach ($root in @($env:LOCALAPPDATA, $env:ProgramFiles, ${env:ProgramFiles(x86)}, 'C:\Users')) { if ($root -and (Test-Path $root)) { $found += Get-ChildItem -Path $root -Recurse -Filter 'Scope.exe' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName } }
+            $found | ForEach-Object { Write-Host ("FOUND: " + $_) }
+            if ($found.Count -gt 0) { $exe = $found[0] }
+          }
           if (-not (Test-Path $exe)) { Write-Error "not installed"; exit 1 }
+          Write-Host ("Using: " + $exe)
           $env:APP_EXEC = $exe
           node e2e/e2e.js
       - name: macOS Intel - install and E2E
