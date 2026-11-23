@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const TK = crypto.generateKeyPairSync('ed25519');
 const TPUB = TK.publicKey.export({ type: 'spki', format: 'pem' });
 const mkCode = (mid, o = {}, key = TK.privateKey) => { const payload = Buffer.from(JSON.stringify({ v: 1, mid, name: o.name || 'QA', exp: o.exp === undefined ? null : o.exp, iat: '2026-01-01' })); return payload.toString('base64url') + '.' + crypto.sign(null, payload, key).toString('base64url'); };
-try { fs.rmSync(path.join(os.homedir(), '.scope-license.json'), { force: true }); } catch (e) { }
+try { fs.rmSync(path.join(os.homedir(), '.scope-license.json'), { force: true }); fs.rmSync(path.join(os.homedir(), '.scope-seen.json'), { force: true }); } catch (e) { }
 const ENV = { ...process.env, SCOPE_E2E_PUBKEY: TPUB };
 const results = []; const errs = [];
 const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra !== undefined ? '  -> ' + extra : '')); };
@@ -153,6 +153,32 @@ async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x
   await w.click('#ask_ok'); await sleep(3500);
   check('38. البيانات رجعت من المجلد المخصص', await ev(w, () => S.settings.marker === 'CUSTOM-FOLDER'));
   await app.close();
+  // ===== انتهاء الترخيص والتجديد (الوقت بيتحاكى بمتغير بيئة الاختبار) =====
+  const UD3 = fs.mkdtempSync(path.join(os.tmpdir(), 'scope-ud3-'));
+  for (const f of ['.scope-license.json', '.scope-seen.json']) { try { fs.rmSync(path.join(os.homedir(), f), { force: true }); } catch (e) { } }
+  const launchAt = (now) => _electron.launch({ executablePath: EXEC, args: ['--no-sandbox', '--user-data-dir=' + UD3], env: { ...ENV, SCOPE_TEST_NOW: now, SCOPE_LIC_RECHECK_MS: '1500' }, timeout: 60000 });
+  const pageOf = async (ap) => { const p = await ap.firstWindow(); p.on('pageerror', e => errs.push(e.message)); await p.waitForLoadState('domcontentloaded'); await sleep(1500); return p; };
+  let a3 = await launchAt('2031-01-01T10:00:00Z'), w3 = await pageOf(a3);
+  const mid3 = await ev(w3, () => scopeDesktop.licStatus().then(s => s.mid));
+  await w3.fill('#lic_code', mkCode(mid3, { name: 'مطعم الاختبار', exp: '2031-01-31' })); await w3.click('#go'); await w3.waitForFunction(() => document.title === 'Scope', null, { timeout: 20000 }); await sleep(1500);
+  const st3 = await ev(w3, () => scopeDesktop.licStatus());
+  check('E1. ترخيص بتاريخ انتهاء بيشتغل ويحسب الأيام المتبقية', st3.ok && st3.daysLeft >= 30 && st3.daysLeft <= 31, JSON.stringify({ d: st3.daysLeft, exp: st3.exp }));
+  await ev(w3, () => { localStorage.fp_tour = '1'; S.settings.marker = 'RENEW-KEEP'; save(); render(); });
+  check('E2. تنبيه قبل الانتهاء بـ 14 يوم أو أقل', await ev(w3, () => { window.__lic = { daysLeft: 10 }; return alerts().some(a => /ينتهي بعد/.test(a[1])); }));
+  await a3.evaluate((_, v) => { process.env.SCOPE_TEST_NOW = v; }, '2031-03-01T10:00:00Z'); await sleep(4500);
+  check('E3. البرنامج المفتوح بيتقفل لما الترخيص ينتهي', /license\.html/.test(w3.url()) && /انتهى/.test(await w3.locator('#err').innerText()), w3.url().slice(-20));
+  await a3.close(); await sleep(1500);
+  a3 = await launchAt('2031-03-01T10:00:00Z'); w3 = await pageOf(a3);
+  check('E4. فتح البرنامج بعد الانتهاء: شاشة التفعيل بدل البرنامج', (await w3.locator('#lic_code').count()) === 1 && /انتهى/.test(await w3.locator('#err').innerText()));
+  await w3.fill('#lic_code', mkCode(mid3, { name: 'مطعم الاختبار', exp: '2031-01-31' })); await w3.click('#go'); await sleep(900);
+  check('E5. إدخال نفس الكود المنتهي مرفوض', (await w3.locator('#lic_code').count()) === 1);
+  await w3.fill('#lic_code', mkCode(mid3, { name: 'مطعم الاختبار', exp: '2032-01-01' })); await w3.click('#go'); await w3.waitForFunction(() => document.title === 'Scope', null, { timeout: 20000 }); await sleep(1500);
+  check('E6. كود التجديد بيفتح البرنامج والبيانات زي ما هي', await ev(w3, () => S.settings.marker === 'RENEW-KEEP'));
+  await a3.close(); await sleep(1500);
+  a3 = await launchAt('2031-01-10T10:00:00Z'); w3 = await pageOf(a3);
+  check('E7. رجوع تاريخ الجهاز لورا بيقفل الترخيص', (await w3.locator('#lic_code').count()) === 1 && /تاريخ الجهاز/.test(await w3.locator('#err').innerText()));
+  await a3.close();
+  for (const f of ['.scope-license.json', '.scope-seen.json']) { try { fs.rmSync(path.join(os.homedir(), f), { force: true }); } catch (e) { } }
   const failed = results.filter(r => !r[1]);
   console.log('\n=== ' + (results.length - failed.length) + '/' + results.length + ' passed on ' + process.platform + '/' + process.arch + ' ===');
   fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ platform: process.platform, arch: process.arch, results, errs }, null, 1));

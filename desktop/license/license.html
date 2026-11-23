@@ -10,8 +10,8 @@ button{border:0;border-radius:10px;padding:11px 20px;font:700 16px inherit;curso
 <p style="margin-top:16px"><b>كود التفعيل</b></p><textarea id="lic_code" placeholder="الصق كود التفعيل هنا"></textarea><div class="err" id="err"></div>
 <div class="row"><button id="go">تفعيل</button></div><p style="font-size:13px;margin-top:14px">الكود مربوط بالجهاز ده بس ومينفعش يتنقل لجهاز تاني.</p></div>
 <script>
-const $=s=>document.querySelector(s);const R={bad:'الكود غير صحيح',machine:'الكود ده لجهاز تاني — لازم يتعمل لرقم الجهاز اللي فوق',expired:'الكود منتهي',empty:'الصق الكود الأول'};
-(async()=>{const s=await scopeDesktop.licStatus();$('#mid').textContent=s.mid;if(s.reason==='expired'){$('#err').style.display='block';$('#err').textContent='ترخيص الجهاز ده انتهى — اطلب كود جديد من المالك'}})();
+const $=s=>document.querySelector(s);const R={bad:'الكود غير صحيح',machine:'الكود ده لجهاز تاني — لازم يتعمل لرقم الجهاز اللي فوق',expired:'الكود منتهي',empty:'الصق الكود الأول',clock:'تاريخ الجهاز رجع لورا — صحّح التاريخ والوقت وأعد المحاولة'};
+(async()=>{const s=await scopeDesktop.licStatus();$('#mid').textContent=s.mid;if(s.reason==='expired'){$('#err').style.display='block';$('#err').textContent='⚠ ترخيص الجهاز ده انتهى'+(s.exp?' بتاريخ '+s.exp:'')+' — بياناتك محفوظة ومتمسحتش. اطلب كود تجديد من المالك (نفس رقم الجهاز) والصقه تحت.'}if(s.reason==='clock'){$('#err').style.display='block';$('#err').textContent=R.clock}})();
 $('#cp').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($('#mid').textContent)};
 $('#go').onclick=async()=>{const c=$('#lic_code').value.trim();if(!c){$('#err').style.display='block';$('#err').textContent=R.empty;return}const r=await scopeDesktop.activate(c);if(!r.ok){$('#err').style.display='block';$('#err').textContent=R[r.reason]||R.bad}};
 </script></body></html>

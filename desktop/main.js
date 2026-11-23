@@ -28,6 +28,7 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (/^https?:/.test(url)) { e.preventDefault(); shell.openExternal(url); } });
   win.on('close', saveState);
+  win.on('focus', recheckLicense);
   win.on('closed', () => { win = null; });
 }
 
@@ -60,6 +61,8 @@ function buildMenu() {
 const PUBKEYS = [`-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAqjafhUXwSoaprVJE+8VQdJ7+Lm9nQS3X68twG69wKyQ=
 -----END PUBLIC KEY-----`];
+// وقت الاختبار الآلي بس (مرتبط بنفس مفتاح الاختبار): بنحاكي مرور الوقت
+const nowMs = () => (process.env.SCOPE_E2E_PUBKEY && process.env.SCOPE_TEST_NOW) ? Date.parse(process.env.SCOPE_TEST_NOW) : Date.now();
 const extraKey = () => { const k = process.env.SCOPE_E2E_PUBKEY; return k && /BEGIN PUBLIC KEY/.test(k) ? [k] : []; };
 function rawMachineId() {
   try {
@@ -82,21 +85,25 @@ function verifyCode(code) {
     if (!PUBKEYS.concat(extraKey()).some(k => { try { return crypto.verify(null, payload, k, sig); } catch (e) { return false; } })) return { ok: false, reason: 'bad' };
     const o = JSON.parse(payload.toString('utf8'));
     if (o.mid !== machineId()) return { ok: false, reason: 'machine' };
-    if (o.exp && Date.now() > Date.parse(o.exp + 'T23:59:59')) return { ok: false, reason: 'expired', name: o.name };
-    return { ok: true, name: o.name || '', exp: o.exp || null };
+    if (o.exp && nowMs() > Date.parse(o.exp + 'T23:59:59')) return { ok: false, reason: 'expired', name: o.name, exp: o.exp };
+    return { ok: true, name: o.name || '', exp: o.exp || null, daysLeft: o.exp ? Math.ceil((Date.parse(o.exp + 'T23:59:59') - nowMs()) / 864e5) : null };
   } catch (e) { return { ok: false, reason: 'bad' }; }
 }
 const licFiles = () => [path.join(app.getPath('userData'), 'license.json'), path.join(app.getPath('home'), '.scope-license.json')];
+// حماية من رجوع تاريخ الجهاز لورا علشان الترخيص المنتهي ما يشتغلش تاني
+const seenFiles = () => [path.join(app.getPath('userData'), 'seen.json'), path.join(app.getPath('home'), '.scope-seen.json')];
+function lastSeen() { let t = 0; for (const f of seenFiles()) { try { t = Math.max(t, JSON.parse(fs.readFileSync(f, 'utf8')).t || 0); } catch (e) {} } return t; }
+function markSeen() { const t = Math.max(lastSeen(), nowMs()); for (const f of seenFiles()) { try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ t })); } catch (e) {} } }
 function currentLicense() {
   if (!app.isPackaged && process.env.SCOPE_LICENSE_DEV === '1') return { ok: true, name: 'dev' };
   let last = { ok: false, reason: 'none' };
-  for (const f of licFiles()) { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); const r = verifyCode(o.code); if (r.ok) return { ...r, code: o.code }; last = r; } catch (e) {} }
+  for (const f of licFiles()) { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); const r = verifyCode(o.code); if (r.ok) { if (nowMs() + 2 * 864e5 < lastSeen()) return { ok: false, reason: 'clock', name: r.name }; markSeen(); return { ...r, code: o.code }; } last = r; } catch (e) {} }
   return last;
 }
 function saveLicense(code) { for (const f of licFiles()) { try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ code, at: Date.now() })); } catch (e) {} } }
 const loadMain = () => { if (win) win.loadFile(path.join(__dirname, 'app', 'index.html')); };
-ipcMain.handle('lic:status', () => { const r = currentLicense(); return { ok: !!r.ok, reason: r.reason, name: r.name, exp: r.exp, mid: machineId() }; });
-ipcMain.handle('lic:activate', (e, code) => { const r = verifyCode(code); if (r.ok) { saveLicense(String(code).trim().replace(/\s+/g, '')); setTimeout(loadMain, 300); } return { ok: r.ok, reason: r.reason }; });
+ipcMain.handle('lic:status', () => { const r = currentLicense(); return { ok: !!r.ok, reason: r.reason, name: r.name, exp: r.exp, daysLeft: r.daysLeft === undefined ? null : r.daysLeft, mid: machineId() }; });
+ipcMain.handle('lic:activate', (e, code) => { const r = verifyCode(code); if (r.ok && nowMs() + 2 * 864e5 < lastSeen()) return { ok: false, reason: 'clock' }; if (r.ok) { saveLicense(String(code).trim().replace(/\s+/g, '')); setTimeout(loadMain, 300); } return { ok: r.ok, reason: r.reason }; });
 
 // ---------- النسخ الاحتياطي التلقائي ----------
 const cfgFile = () => path.join(app.getPath('userData'), 'config.json');
@@ -165,5 +172,6 @@ ipcMain.handle('bk:pick', async () => { const r = await dialog.showOpenDialog(wi
 ipcMain.handle('bk:open', () => shell.openPath(bkDir()));
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
-app.whenReady().then(() => { loadEncPw(); try { const c = readCfg(); if (c.backupDir) writePointers(c.backupDir); } catch (e) {} buildMenu(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
+function recheckLicense() { try { if (!win || win.isDestroyed()) return; const u = win.webContents.getURL(); if (/license\.html/.test(u)) return; if (!currentLicense().ok) win.loadFile(path.join(__dirname, 'license', 'license.html')); } catch (e) {} }
+app.whenReady().then(() => { setInterval(recheckLicense, process.env.SCOPE_E2E_PUBKEY && process.env.SCOPE_LIC_RECHECK_MS ? +process.env.SCOPE_LIC_RECHECK_MS : 30 * 60 * 1000); loadEncPw(); try { const c = readCfg(); if (c.backupDir) writePointers(c.backupDir); } catch (e) {} buildMenu(); createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

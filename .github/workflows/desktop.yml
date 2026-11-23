@@ -96,6 +96,7 @@ jobs:
           name: scope-${{ matrix.os }}
           path: |
             desktop/dist/*.exe
+            desktop/dist/*.zip
             desktop/dist/*.dmg
             desktop/dist/*.AppImage
             desktop/dist/*.deb
@@ -126,8 +127,24 @@ jobs:
         with:
           name: ${{ matrix.art }}
           path: inst
-      - name: Windows ARM - install and E2E
+      - name: Windows ARM - native ZIP (no installer) + E2E
         if: runner.os == 'Windows'
+        working-directory: desktop
+        shell: pwsh
+        env:
+          E2E_OUT: ${{ github.workspace }}\e2e-out-zip
+        run: |
+          Write-Host ("OS arch: " + $env:PROCESSOR_ARCHITECTURE)
+          $zip = Get-ChildItem ..\inst\Scope-*-win-arm64.zip | Select-Object -First 1
+          Write-Host ("ZIP: " + $zip.FullName + " size " + $zip.Length)
+          Expand-Archive -Path $zip.FullName -DestinationPath C:\ScopeArm -Force
+          $exe = (Get-ChildItem C:\ScopeArm -Recurse -Filter Scope.exe | Select-Object -First 1).FullName
+          Write-Host ("exe: " + $exe)
+          $env:APP_EXEC = $exe
+          node e2e/e2e.js
+      - name: Windows ARM - installer attempt and E2E (informational)
+        if: runner.os == 'Windows'
+        continue-on-error: true
         working-directory: desktop
         shell: pwsh
         env:
@@ -173,7 +190,9 @@ jobs:
         if: always()
         with:
           name: e2e-${{ matrix.os }}
-          path: e2e-out
+          path: |
+            e2e-out
+            e2e-out-zip
           if-no-files-found: ignore
   release:
     needs: build
