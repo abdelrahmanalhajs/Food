@@ -1,6 +1,7 @@
 // Scope — برنامج سطح المكتب (Electron). بيفتح نفس نظام الويب من ملفات محلية، وبياناته بتتحفظ على الجهاز.
 const { app, BrowserWindow, Menu, shell, dialog, ipcMain, safeStorage } = require('electron');
 const crypto = require('crypto');
+const cp = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -21,7 +22,8 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
   });
   if (st.max) win.maximize();
-  win.loadFile(path.join(__dirname, 'app', 'index.html'));
+  if (currentLicense().ok) win.loadFile(path.join(__dirname, 'app', 'index.html'));
+  else win.loadFile(path.join(__dirname, 'license', 'license.html'));
   // الروابط الخارجية تفتح في المتصفح، مش جوه البرنامج
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (/^https?:/.test(url)) { e.preventDefault(); shell.openExternal(url); } });
@@ -44,7 +46,7 @@ function buildMenu() {
       { label: 'فتح مجلد النسخ الاحتياطي | Open backup folder', click: () => shell.openPath(bkDir()) },
       { label: 'استرجاع من نسخة احتياطية… | Restore backup…', click: () => win && win.webContents.executeJavaScript('window.scopeRestore&&window.scopeRestore()') },
       { label: 'فتح مجلد البيانات | Open data folder', click: () => shell.openPath(app.getPath('userData')) },
-      { label: 'عن البرنامج | About', click: () => dialog.showMessageBox(win, { type: 'info', title: 'Scope', message: 'Scope ' + app.getVersion(), detail: 'بياناتك محفوظة على هذا الجهاز فقط.\nYour data is stored on this computer only.\n\n' + app.getPath('userData') }) },
+      { label: 'عن البرنامج | About', click: () => dialog.showMessageBox(win, { type: 'info', title: 'Scope', message: 'Scope ' + app.getVersion(), detail: 'رقم الجهاز / Machine ID: ' + machineId() + '\n' + (currentLicense().ok ? 'مرخّص لـ: ' + (currentLicense().name || '—') + (currentLicense().exp ? ' — ينتهي ' + currentLicense().exp : '') : 'غير مفعّل') + '\n\n' + 'بياناتك محفوظة على هذا الجهاز فقط.\nYour data is stored on this computer only.\n\n' + app.getPath('userData') }) },
       { type: 'separator' },
       { role: 'quit', label: 'خروج | Quit' }
     ] },
@@ -52,6 +54,49 @@ function buildMenu() {
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(t));
 }
+
+
+// ---------- ترخيص التفعيل: البرنامج مبيشتغلش على جهاز من غير كود من المالك ----------
+const PUBKEYS = [`-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAqjafhUXwSoaprVJE+8VQdJ7+Lm9nQS3X68twG69wKyQ=
+-----END PUBLIC KEY-----`];
+const extraKey = () => { const k = process.env.SCOPE_E2E_PUBKEY; return k && /BEGIN PUBLIC KEY/.test(k) ? [k] : []; };
+function rawMachineId() {
+  try {
+    if (process.platform === 'win32') { const o = cp.execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf8', windowsHide: true }); const m = o.match(/MachineGuid\s+REG_SZ\s+(\S+)/); if (m) return m[1]; }
+    else if (process.platform === 'darwin') { const o = cp.execSync('ioreg -rd1 -c IOPlatformExpertDevice', { encoding: 'utf8' }); const m = o.match(/"IOPlatformUUID" = "([^"]+)"/); if (m) return m[1]; }
+    else { for (const f of ['/etc/machine-id', '/var/lib/dbus/machine-id']) { try { const v = fs.readFileSync(f, 'utf8').trim(); if (v) return v; } catch (e) {} } }
+  } catch (e) {}
+  return null;
+}
+function machineId() {
+  let raw = rawMachineId();
+  if (!raw) { const f = path.join(app.getPath('userData'), 'mid.txt'); try { raw = fs.readFileSync(f, 'utf8'); } catch (e) { raw = crypto.randomUUID(); try { fs.writeFileSync(f, raw); } catch (e2) {} } }
+  return crypto.createHash('sha256').update('scope-mid:' + raw).digest('hex').slice(0, 16).toUpperCase().match(/.{4}/g).join('-');
+}
+function verifyCode(code) {
+  try {
+    const parts = String(code || '').trim().replace(/\s+/g, '').split('.');
+    if (parts.length !== 2) return { ok: false, reason: 'bad' };
+    const payload = Buffer.from(parts[0], 'base64url'), sig = Buffer.from(parts[1], 'base64url');
+    if (!PUBKEYS.concat(extraKey()).some(k => { try { return crypto.verify(null, payload, k, sig); } catch (e) { return false; } })) return { ok: false, reason: 'bad' };
+    const o = JSON.parse(payload.toString('utf8'));
+    if (o.mid !== machineId()) return { ok: false, reason: 'machine' };
+    if (o.exp && Date.now() > Date.parse(o.exp + 'T23:59:59')) return { ok: false, reason: 'expired', name: o.name };
+    return { ok: true, name: o.name || '', exp: o.exp || null };
+  } catch (e) { return { ok: false, reason: 'bad' }; }
+}
+const licFiles = () => [path.join(app.getPath('userData'), 'license.json'), path.join(app.getPath('home'), '.scope-license.json')];
+function currentLicense() {
+  if (!app.isPackaged && process.env.SCOPE_LICENSE_DEV === '1') return { ok: true, name: 'dev' };
+  let last = { ok: false, reason: 'none' };
+  for (const f of licFiles()) { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); const r = verifyCode(o.code); if (r.ok) return { ...r, code: o.code }; last = r; } catch (e) {} }
+  return last;
+}
+function saveLicense(code) { for (const f of licFiles()) { try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ code, at: Date.now() })); } catch (e) {} } }
+const loadMain = () => { if (win) win.loadFile(path.join(__dirname, 'app', 'index.html')); };
+ipcMain.handle('lic:status', () => { const r = currentLicense(); return { ok: !!r.ok, reason: r.reason, name: r.name, exp: r.exp, mid: machineId() }; });
+ipcMain.handle('lic:activate', (e, code) => { const r = verifyCode(code); if (r.ok) { saveLicense(String(code).trim().replace(/\s+/g, '')); setTimeout(loadMain, 300); } return { ok: r.ok, reason: r.reason }; });
 
 // ---------- النسخ الاحتياطي التلقائي ----------
 const cfgFile = () => path.join(app.getPath('userData'), 'config.json');

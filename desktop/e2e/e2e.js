@@ -7,16 +7,37 @@ const EXEC = process.env.APP_EXEC;
 if (!EXEC) { console.error('APP_EXEC is required'); process.exit(2); }
 const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), 'scope-e2e'); fs.mkdirSync(OUT, { recursive: true });
 const UD = fs.mkdtempSync(path.join(os.tmpdir(), 'scope-ud-'));
+const crypto = require('crypto');
+// مفتاح اختبار مؤقت: بيتحط في البرنامج عن طريق متغير بيئة علشان نختبر التفعيل الحقيقي بدون المفتاح الخاص بتاع المالك
+const TK = crypto.generateKeyPairSync('ed25519');
+const TPUB = TK.publicKey.export({ type: 'spki', format: 'pem' });
+const mkCode = (mid, o = {}, key = TK.privateKey) => { const payload = Buffer.from(JSON.stringify({ v: 1, mid, name: o.name || 'QA', exp: o.exp === undefined ? null : o.exp, iat: '2026-01-01' })); return payload.toString('base64url') + '.' + crypto.sign(null, payload, key).toString('base64url'); };
+try { fs.rmSync(path.join(os.homedir(), '.scope-license.json'), { force: true }); } catch (e) { }
+const ENV = { ...process.env, SCOPE_E2E_PUBKEY: TPUB };
 const results = []; const errs = [];
 const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra !== undefined ? '  -> ' + extra : '')); };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const launch = () => _electron.launch({ executablePath: EXEC, args: ['--no-sandbox', '--user-data-dir=' + UD], timeout: 60000 });
-async function open(app) { const w = await app.firstWindow(); w.on('pageerror', e => errs.push(e.message)); await w.waitForLoadState('domcontentloaded'); await sleep(1500); return w; }
+const launch = () => _electron.launch({ executablePath: EXEC, args: ['--no-sandbox', '--user-data-dir=' + UD], env: ENV, timeout: 60000 });
+async function activateNow(w) { const mid = await ev(w, () => scopeDesktop.licStatus().then(s => s.mid)); await w.fill('#lic_code', mkCode(mid)); await w.click('#go'); await w.waitForFunction(() => document.title === 'Scope', null, { timeout: 20000 }); await sleep(1500); }
+async function open(app) { const w = await app.firstWindow(); w.on('pageerror', e => errs.push(e.message)); await w.waitForLoadState('domcontentloaded'); await sleep(1500); if (await w.locator('#lic_code').count()) await activateNow(w); return w; }
 const ev = (w, f, a) => w.evaluate(f, a);
 async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x => can(x[0])).map(x => x[0])); let bad = 0, empty = 0; for (const t of tabs) { try { await ev(w, t => go(t), t); await sleep(60); if (!(await w.locator('main').innerText()).trim()) empty++; } catch (e) { bad++; console.log('  throw on', t, String(e.message).split('\n')[0]); } } check(label + ': كل الصفحات تفتح (' + tabs.length + ')', bad === 0 && empty === 0, 'throws=' + bad + ' empty=' + empty); }
 
 (async () => {
-  let app = await launch(), w = await open(app);
+  let app = await launch(); let w = await app.firstWindow(); w.on('pageerror', e => errs.push(e.message)); await w.waitForLoadState('domcontentloaded'); await sleep(1500);
+  // ===== التفعيل (الباسورد بتاع التثبيت) =====
+  check('L1. من غير ترخيص: بتظهر شاشة التفعيل بدل البرنامج', (await w.locator('#lic_code').count()) === 1 && (await w.title()) === 'تفعيل Scope');
+  const mid = await ev(w, () => scopeDesktop.licStatus().then(s => s.mid)); check('L2. رقم الجهاز ظاهر بصيغة صحيحة', /^[0-9A-F]{4}(-[0-9A-F]{4}){3}$/.test(mid), mid);
+  const tryCode = async (code) => { await w.fill('#lic_code', code); await w.click('#go'); await sleep(900); return (await w.locator('#err').innerText()).trim(); };
+  check('L3. كود عشوائي مرفوض', (await tryCode('garbage')).length > 0 && (await w.locator('#lic_code').count()) === 1);
+  const other = crypto.generateKeyPairSync('ed25519');
+  await tryCode(mkCode(mid, {}, other.privateKey)); check('L4. كود موقّع بمفتاح غير مفتاح المالك مرفوض', (await w.locator('#lic_code').count()) === 1 && /غير صحيح/.test(await w.locator('#err').innerText()));
+  await tryCode(mkCode('AAAA-BBBB-CCCC-DDDD')); check('L5. كود لجهاز تاني مرفوض', /جهاز تاني/.test(await w.locator('#err').innerText()));
+  await tryCode(mkCode(mid, { exp: '2020-01-01' })); check('L6. كود منتهي مرفوض', /منتهي/.test(await w.locator('#err').innerText()));
+  const good = mkCode(mid, { name: 'مطعم الاختبار' }); const tampered = good.slice(0, 20) + (good[20] === 'A' ? 'B' : 'A') + good.slice(21);
+  await tryCode(tampered); check('L7. كود معدّل بالتلاعب مرفوض', (await w.locator('#lic_code').count()) === 1);
+  await w.fill('#lic_code', good); await w.click('#go'); await w.waitForFunction(() => document.title === 'Scope', null, { timeout: 20000 }); await sleep(1500);
+  check('L8. الكود الصح بيفعّل ويفتح البرنامج', (await w.title()) === 'Scope');
   check('1. البرنامج بيفتح والعنوان Scope', (await w.title()) === 'Scope', await w.title());
   // لو الجهاز فيه نسخ احتياطية من تشغيل سابق، البرنامج بيعرض استرجاعها — هنا بنرفض علشان نبدأ من الصفر
   await w.waitForSelector('#ask_no', { timeout: 4000 }).then(() => w.click('#ask_no')).catch(() => { }); await sleep(500);
@@ -85,7 +106,7 @@ async function allPages(w, label) { const tabs = await ev(w, () => TABS.filter(x
   await w.fill('#lg_u', 'boss'); await w.fill('#lg_p', 'Boss#2026'); await w.click('[data-cx=doLogin]'); await sleep(1500);
   check('25. البيانات فضلت محفوظة', await ev(w, () => S.settings.marker === 'E2E-MARK' && S.branches.length === 4 && S.exp.some(e => e.amount === 777)));
   // قفل النسخة الواحدة
-  const second = cp.spawnSync(EXEC, ['--no-sandbox', '--user-data-dir=' + UD], { timeout: 25000 });
+  const second = cp.spawnSync(EXEC, ['--no-sandbox', '--user-data-dir=' + UD], { timeout: 25000, env: ENV });
   await sleep(1500); check('26. نسخة ثانية ما بتفتحش نافذة تانية', app.windows().length === 1, 'windows=' + app.windows().length);
   await app.close(); await sleep(1500);
   // كارثة: مسح بيانات البرنامج + استرجاع

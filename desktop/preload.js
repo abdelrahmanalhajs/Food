@@ -10,5 +10,7 @@ contextBridge.exposeInMainWorld('scopeDesktop', {
   encStatus: () => ipcRenderer.invoke('bk:encstatus'),
   setBackupPassword: (pw) => ipcRenderer.invoke('bk:setpw', pw),
   checkBackupPassword: (pw) => ipcRenderer.invoke('bk:checkpw', pw),
-  decrypt: (raw, pw) => ipcRenderer.invoke('bk:decrypt', raw, pw)
+  decrypt: (raw, pw) => ipcRenderer.invoke('bk:decrypt', raw, pw),
+  licStatus: () => ipcRenderer.invoke('lic:status'),
+  activate: (code) => ipcRenderer.invoke('lic:activate', code)
 });
